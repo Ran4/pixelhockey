@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pixel Hockey</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { 
+    width: 100%; height: 100%; overflow: hidden;
+    background: #0a0a1a;
+    font-family: 'Press Start 2P', monospace;
+  }
+  #game-wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+  }
+  #scoreboard {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 6px 0; color: #fff; font-size: 11px; letter-spacing: 1px;
+    width: 100%; max-width: 420px;
+  }
+  .team-score { display: flex; align-items: center; gap: 6px; }
+  .team-dot { width: 10px; height: 10px; border-radius: 2px; }
+  .red { background: #e04040; }
+  .blue { background: #4080e0; }
+  #period-info { color: #8888aa; font-size: 9px; }
+  #game-time { color: #ffcc00; font-size: 13px; font-weight: bold; }
+  canvas { 
+    display: block; 
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 2px solid #334;
+    border-radius: 4px;
+  }
+  #msg-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(5,5,20,0.85); color: #fff; z-index: 10;
+    font-family: 'Press Start 2P', monospace; text-align: center;
+    pointer-events: auto; cursor: pointer;
+  }
+  #msg-overlay.hidden { display: none; }
+  #msg-overlay h1 { font-size: 18px; color: #ffcc00; margin-bottom: 16px; text-shadow: 2px 2px #000; }
+  #msg-overlay p { font-size: 10px; color: #aaa; line-height: 1.8; }
+  #goal-flash {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(255,220,0,0.15); z-index: 5; pointer-events: none;
+  }
+  #goal-flash span {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 28px; color: #ffcc00; text-shadow: 3px 3px #000;
+    animation: goalPulse 0.6s ease-out;
+  }
+  @keyframes goalPulse {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #speed-controls {
+    display: flex; gap: 8px; margin-top: 6px;
+  }
+  #speed-controls button {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px; padding: 4px 10px;
+    background: #1a1a2e; color: #8888aa; border: 1px solid #334;
+    border-radius: 3px; cursor: pointer;
+  }
+  #speed-controls button.active {
+    color: #ffcc00; border-color: #ffcc00;
+  }
+</style>
+</head>
+<body>
+<div id="game-wrap">
+  <div id="scoreboard">
+    <div class="team-score"><div class="team-dot red"></div><span id="score-red">0</span></div>
+    <span id="period-info">P1</span>
+    <span id="game-time">20:00</span>
+    <div class="team-score"><span id="score-blue">0</span><div class="team-dot blue"></div></div>
+  </div>
+  <canvas id="c"></canvas>
+  <div id="speed-controls">
+    <button onclick="setSpeed(0.5)">0.5x</button>
+    <button class="active" onclick="setSpeed(1)">1x</button>
+    <button onclick="setSpeed(2)">2x</button>
+    <button onclick="setSpeed(3)">3x</button>
+  </div>
+</div>
+
+<div id="msg-overlay" onclick="startGame()">
+  <h1>🏒 PIXEL HOCKEY</h1>
+  <p>RED vs BLUE<br><br>3 Perioder × 2 min<br><br>Tryck för att starta!</p>
+</div>
+<div id="goal-flash"><span>GOAL!</span></div>
+
+<script>
+// ─── CONFIG ─────────────────────────────────────────────
+const RINK_W = 240;
+const RINK_H = 400;
+const S = 2; // internal pixel scale for nice coordinates
+const W = RINK_W * S;
+const H = RINK_H * S;
+
+const canvas = document.getElementById('c');
+canvas.width = W; canvas.height = H;
+const ctx = canvas.getContext('2d');
+
+// CSS-scale canvas to fill available space
+function fitCanvas() {
+  const pad = 8;
+  const topUI = 32;
+  const bottomUI = 34;
+  const sw = window.innerWidth - pad;
+  const sh = window.innerHeight - topUI - bottomUI;
+  const cssScale = Math.min(sw / W, sh / H);
+  canvas.style.width = (W * cssScale) + 'px';
+  canvas.style.height = (H * cssScale) + 'px';
+}
+fitCanvas();
+window.addEventListener('resize', fitCanvas);
+
+let gameSpeed = 1;
+function setSpeed(s) {
+  gameSpeed = s;
+  document.querySelectorAll('#speed-controls button').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.textContent) === s);
+  });
+}
+
+// ─── GAME STATE ─────────────────────────────────────────
+const GOAL_W = 36 * S;
+const GOAL_DEPTH = 10 * S;
+const GOAL_X = (W - GOAL_W) / 2;
+const PERIOD_TIME = 120; // seconds per period
+const TOTAL_PERIODS = 3;
+
+let state = 'menu'; // menu, playing, goal, periodEnd, gameOver
+let score = [0, 0];
+let period = 1;
+let clock = PERIOD_TIME;
+let goalTimer = 0;
+let periodEndTimer = 0;
+let puck, players;
+
+// ─── HELPERS ────────────────────────────────────────────
+function rand(a, b) { return a + Math.random() * (b - a); }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function norm(vx, vy) { const l = Math.hypot(vx, vy) || 1; return { x: vx/l, y: vy/l }; }
+
+// ─── PUCK ───────────────────────────────────────────────
+function makePuck() {
+  return { x: W/2, y: H/2, vx: 0, vy: 0, r: 3*S, trail: [] };
+}
+
+// ─── PLAYERS ────────────────────────────────────────────
+function makePlayers() {
+  const p = [];
+  // Team 0 = RED (defends top goal, attacks bottom)
+  // Team 1 = BLUE (defends bottom goal, attacks top)
+  const positions = [
+    // RED: goalie, 2 def, 2 fwd, center
+    { team:0, role:'goalie', hx: W/2, hy: 30*S },
+    { team:0, role:'def', hx: W/2 - 40*S, hy: 100*S },
+    { team:0, role:'def', hx: W/2 + 40*S, hy: 100*S },
+    { team:0, role:'fwd', hx: W/2 - 35*S, hy: 220*S },
+    { team:0, role:'fwd', hx: W/2 + 35*S, hy: 220*S },
+    { team:0, role:'center', hx: W/2, hy: 170*S },
+    // BLUE
+    { team:1, role:'goalie', hx: W/2, hy: H - 30*S },
+    { team:1, role:'def', hx: W/2 - 40*S, hy: H - 100*S },
+    { team:1, role:'def', hx: W/2 + 40*S, hy: H - 100*S },
+    { team:1, role:'fwd', hx: W/2 - 35*S, hy: H - 220*S },
+    { team:1, role:'fwd', hx: W/2 + 35*S, hy: H - 220*S },
+    { team:1, role:'center', hx: W/2, hy: H - 170*S },
+  ];
+  for (const p0 of positions) {
+    p.push({
+      ...p0,
+      x: p0.hx, y: p0.hy,
+      vx: 0, vy: 0,
+      r: 6 * S,
+      hasPuck: false,
+      puckShield: 0,
+      pickupCooldown: 0,
+      shootCooldown: 0,
+      holdTimer: 0,
+      fatigue: 0,
+    });
+  }
+  return p;
+}
+
+function resetPositions() {
+  const positions = [
+    { hx: W/2, hy: 30*S },
+    { hx: W/2 - 40*S, hy: 100*S },
+    { hx: W/2 + 40*S, hy: 100*S },
+    { hx: W/2 - 35*S, hy: 220*S },
+    { hx: W/2 + 35*S, hy: 220*S },
+    { hx: W/2, hy: 170*S },
+    { hx: W/2, hy: H - 30*S },
+    { hx: W/2 - 40*S, hy: H - 100*S },
+    { hx: W/2 + 40*S, hy: H - 100*S },
+    { hx: W/2 - 35*S, hy: H - 220*S },
+    { hx: W/2 + 35*S, hy: H - 220*S },
+    { hx: W/2, hy: H - 170*S },
+  ];
+  players.forEach((p, i) => {
+    p.x = positions[i].hx; p.y = positions[i].hy;
+    p.hx = positions[i].hx; p.hy = positions[i].hy;
+    p.vx = 0; p.vy = 0; p.hasPuck = false;
+    p.shootCooldown = 0; p.puckShield = 0; p.pickupCooldown = 0;
+  });
+  puck.x = W/2; puck.y = H/2; puck.vx = 0; puck.vy = 0; puck.trail = [];
+}
+
+// ─── AI ─────────────────────────────────────────────────
+function aiUpdate(dt) {
+  const carrier = players.find(p => p.hasPuck);
+  
+  for (const p of players) {
+    let tx = p.hx, ty = p.hy;
+    const spd = p.role === 'goalie' ? 110 * S : 130 * S;
+    const attackDir = p.team === 0 ? 1 : -1; // +y = attacking for red, -y for blue
+    const ownGoalY = p.team === 0 ? 0 : H;
+    const oppGoalY = p.team === 0 ? H : 0;
+    
+    p.shootCooldown = Math.max(0, p.shootCooldown - dt);
+    p.puckShield = Math.max(0, p.puckShield - dt);
+    p.pickupCooldown = Math.max(0, p.pickupCooldown - dt);
+
+    if (p.hasPuck) {
+      if (p.role === 'goalie') {
+        // Goalie: pass to best teammate IMMEDIATELY
+        const target = bestGoaliePassTarget(p);
+        if (target) {
+          const n = norm(target.x - p.x, target.y - p.y);
+          const power = Math.min(dist(p, target) * 1.2, 250 * S);
+          puck.vx = n.x * power;
+          puck.vy = n.y * power;
+          p.hasPuck = false;
+          p.shootCooldown = 0.3;
+          p.pickupCooldown = 0.6;
+        }
+        // Stay near own goal while holding
+        tx = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+        ty = ownGoalY + (p.team === 0 ? 25*S : -25*S);
+      } else {
+        // Has puck: track how long we've held it
+        p.holdTimer += dt;
+        
+        const goalX = W / 2;
+        const goalY = oppGoalY;
+        const dg = dist(p, { x: goalX, y: goalY });
+        
+        // Shoot if close enough
+        if (dg < 110 * S && p.shootCooldown <= 0) {
+          const n = norm(goalX - p.x + rand(-20*S, 20*S), goalY - p.y);
+          puck.vx = n.x * 320 * S;
+          puck.vy = n.y * 320 * S;
+          p.hasPuck = false;
+          p.shootCooldown = 1.0;
+          p.pickupCooldown = 0.6;
+          p.holdTimer = 0;
+        } else {
+          // Skate toward goal
+          tx = goalX + Math.sin(Date.now() * 0.003 + p.hx) * 40 * S;
+          ty = p.y + attackDir * 50 * S;
+          
+          // PASSING: main play mechanic
+          const nearestOpp = closestOpponent(p);
+          const oppDist = nearestOpp ? dist(p, nearestOpp) : 999;
+          const teammate = bestPassTarget(p);
+          
+          if (teammate) {
+            let doPass = false;
+            
+            // Time-based: must pass after holding a while
+            if (p.holdTimer > 2.5) doPass = true;
+            // Pressured: pass if held long enough
+            if (oppDist < 35 * S && p.holdTimer > 0.8) doPass = true;
+            if (oppDist < 20 * S && p.holdTimer > 0.4) doPass = true;
+            // Defenders pass forward after a beat
+            if (p.role === 'def' && p.holdTimer > 1.2) doPass = true;
+            // Random proactive pass occasionally
+            if (p.holdTimer > 1.0 && Math.random() < 0.015) doPass = true;
+            
+            if (doPass && p.shootCooldown <= 0) {
+              const leadX = teammate.x + teammate.vx * 0.3;
+              const leadY = teammate.y + teammate.vy * 0.3;
+              const n = norm(leadX - p.x, leadY - p.y);
+              const passDist = dist(p, teammate);
+              const power = clamp(passDist * 1.1, 150 * S, 280 * S);
+              puck.vx = n.x * power;
+              puck.vy = n.y * power;
+              p.hasPuck = false;
+              p.shootCooldown = 0.3;
+              p.pickupCooldown = 0.6;
+              p.holdTimer = 0;
+            }
+          }
+        }
+      }
+    } else if (carrier && carrier.team === p.team) {
+      p.holdTimer = 0;
+      // Teammate has puck: spread out WIDE into passing lanes
+      if (p.role === 'goalie') {
+        tx = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+        ty = ownGoalY + (p.team === 0 ? 20*S : -20*S);
+      } else if (p.role === 'def') {
+        // Defenders: wide and behind, safe outlet pass
+        const side = (p.hx < W/2) ? -1 : 1;
+        tx = W/2 + side * 80 * S;
+        ty = carrier.y - attackDir * 70 * S;
+        ty = clamp(ty, 35*S, H - 35*S);
+      } else if (p.role === 'fwd') {
+        // Forwards: push FAR ahead and to opposite wings
+        const side = (p.hx < W/2) ? -1 : 1;
+        tx = W/2 + side * 75 * S;
+        ty = carrier.y + attackDir * 90 * S;
+        ty = clamp(ty, 35*S, H - 35*S);
+      } else {
+        // Center: middle lane, ahead of carrier on opposite side
+        const carrierSide = carrier.x < W/2 ? 1 : -1;
+        tx = W/2 + carrierSide * 20 * S;
+        ty = carrier.y + attackDir * 50 * S;
+        ty = clamp(ty, 35*S, H - 35*S);
+      }
+      // Jitter to stay alive
+      tx += Math.sin(Date.now() * 0.003 + p.hx * 0.1) * 12 * S;
+    } else if (carrier && carrier.team !== p.team) {
+      p.holdTimer = 0;
+      // Opponent has puck: only closest chases, rest hold zones
+      if (p.role === 'goalie') {
+        tx = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+        ty = ownGoalY + (p.team === 0 ? 20*S : -20*S);
+      } else {
+        const closest = closestToPuck(p.team);
+        if (p === closest) {
+          // Only this one chases
+          tx = puck.x + puck.vx * 0.15;
+          ty = puck.y + puck.vy * 0.15;
+        } else if (p.role === 'def') {
+          // Defenders: stay between puck and own goal, spread wide
+          const side = (p.hx < W/2) ? -1 : 1;
+          tx = W/2 + side * 55 * S;
+          const midY = (puck.y + ownGoalY) / 2;
+          ty = clamp(midY, p.team === 0 ? 50*S : H - 180*S, p.team === 0 ? 180*S : H - 50*S);
+        } else {
+          // Forwards/center: cut off passing lanes, stay in mid zones
+          const side = (p.hx < W/2) ? -1 : 1;
+          tx = clamp(puck.x + side * 50 * S, 30*S, W - 30*S);
+          ty = p.hy + (puck.y - H/2) * 0.3;
+          ty = clamp(ty, 50*S, H - 50*S);
+        }
+      }
+    } else {
+      // Loose puck
+      const dPuck = dist(p, puck);
+      if (p.role === 'goalie') {
+        tx = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+        ty = ownGoalY + (p.team === 0 ? 20*S : -20*S);
+      } else {
+        const closest = closestToPuck(p.team);
+        if (p === closest) {
+          tx = puck.x; ty = puck.y;
+        } else {
+          tx = p.hx; ty = p.hy;
+        }
+      }
+    }
+    
+    // Goalie constraints
+    if (p.role === 'goalie') {
+      const gyMin = p.team === 0 ? 8*S : H - 45*S;
+      const gyMax = p.team === 0 ? 45*S : H - 8*S;
+      ty = clamp(ty, gyMin, gyMax);
+      tx = clamp(tx, GOAL_X - 5*S, GOAL_X + GOAL_W + 5*S);
+    }
+    
+    // Move toward target
+    const dx = tx - p.x;
+    const dy = ty - p.y;
+    const d = Math.hypot(dx, dy);
+    if (d > 2) {
+      const acc = spd * 4;
+      p.vx += (dx / d) * acc * dt;
+      p.vy += (dy / d) * acc * dt;
+    }
+    
+    // SEPARATION: repel from nearby teammates to prevent clumping
+    if (p.role !== 'goalie') {
+      for (const other of players) {
+        if (other === p || other.team !== p.team || other.role === 'goalie') continue;
+        const sep = dist(p, other);
+        const minSep = 55 * S;
+        if (sep < minSep && sep > 0) {
+          const pushStr = (minSep - sep) / minSep * spd * 3.5;
+          const nx = (p.x - other.x) / sep;
+          const ny = (p.y - other.y) / sep;
+          p.vx += nx * pushStr * dt;
+          p.vy += ny * pushStr * dt;
+        }
+      }
+    }
+    
+    // Friction
+    const fric = 0.92;
+    p.vx *= fric; p.vy *= fric;
+    
+    // Speed limit
+    const sp = Math.hypot(p.vx, p.vy);
+    if (sp > spd) { p.vx *= spd/sp; p.vy *= spd/sp; }
+    
+    // Move
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    
+    // Rink bounds
+    const margin = p.r;
+    p.x = clamp(p.x, margin, W - margin);
+    p.y = clamp(p.y, margin, H - margin);
+    
+    // Pick up puck (blocked by pickupCooldown)
+    if (!carrier && !p.hasPuck && p.pickupCooldown <= 0 && dist(p, puck) < p.r + puck.r + 2*S) {
+      if (Math.hypot(puck.vx, puck.vy) < 200 * S || Math.random() < 0.4) {
+        p.hasPuck = true;
+        p.holdTimer = 0;
+        p.puckShield = 0.5; // invulnerable for 0.5s
+        puck.vx = 0; puck.vy = 0;
+        if (p.role === 'goalie') p.shootCooldown = 0;
+      }
+    }
+    
+    // Body check - steal puck (NEVER on goalies, blocked by shield)
+    if (carrier && carrier.team !== p.team && carrier.puckShield <= 0 && carrier.role !== 'goalie' && p.role !== 'goalie' && dist(p, carrier) < p.r * 2.2) {
+      if (Math.random() < 0.12) {
+        carrier.hasPuck = false;
+        carrier.pickupCooldown = 0.6;
+        puck.vx = rand(-60, 60) * S;
+        puck.vy = rand(-60, 60) * S;
+      }
+    }
+    
+    // Crease avoidance — opponents stay out of goalie crease
+    if (p.role !== 'goalie') {
+      const creaseR = 30 * S;
+      // Top crease (team 0 goalie)
+      if (p.team !== 0) {
+        const dc = Math.hypot(p.x - W/2, p.y);
+        if (dc < creaseR) {
+          const cn = norm(p.x - W/2, p.y);
+          p.x = W/2 + cn.x * creaseR;
+          p.y = cn.y * creaseR;
+        }
+      }
+      // Bottom crease (team 1 goalie)
+      if (p.team !== 1) {
+        const dc = Math.hypot(p.x - W/2, p.y - H);
+        if (dc < creaseR) {
+          const cn = norm(p.x - W/2, p.y - H);
+          p.x = W/2 + cn.x * creaseR;
+          p.y = H + cn.y * creaseR;
+        }
+      }
+    }
+  }
+  
+  // Player-player collision (goalies get extra push protection)
+  for (let i = 0; i < players.length; i++) {
+    for (let j = i+1; j < players.length; j++) {
+      const a = players[i], b = players[j];
+      const d = dist(a, b);
+      const minD = a.r + b.r;
+      if (d < minD && d > 0) {
+        const nx = (b.x - a.x) / d;
+        const ny = (b.y - a.y) / d;
+        const overlap = (minD - d) / 2;
+        // If one is a goalie, only push the other player away
+        const aIsGoalie = a.role === 'goalie';
+        const bIsGoalie = b.role === 'goalie';
+        if (aIsGoalie) {
+          b.x += nx * overlap * 2; b.y += ny * overlap * 2;
+        } else if (bIsGoalie) {
+          a.x -= nx * overlap * 2; a.y -= ny * overlap * 2;
+        } else {
+          a.x -= nx * overlap; a.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
+        }
+        // Bounce (skip if goalie involved from other team)
+        if ((aIsGoalie && b.team !== a.team) || (bIsGoalie && a.team !== b.team)) {
+          // Just push away, no puck steal energy transfer
+          const pushF = 1.2;
+          if (aIsGoalie) { b.vx += nx * pushF; b.vy += ny * pushF; }
+          else { a.vx -= nx * pushF; a.vy -= ny * pushF; }
+        } else {
+          const dvx = a.vx - b.vx;
+          const dvy = a.vy - b.vy;
+          const dot = dvx * nx + dvy * ny;
+          a.vx -= dot * nx * 0.5;
+          a.vy -= dot * ny * 0.5;
+          b.vx += dot * nx * 0.5;
+          b.vy += dot * ny * 0.5;
+        }
+      }
+    }
+  }
+}
+
+function closestOpponent(p) {
+  let best = null, bestD = Infinity;
+  for (const o of players) {
+    if (o.team === p.team) continue;
+    const d = dist(p, o);
+    if (d < bestD) { bestD = d; best = o; }
+  }
+  return best;
+}
+
+function closestToPuck(team) {
+  let best = null, bestD = Infinity;
+  for (const p of players) {
+    if (p.team !== team || p.role === 'goalie') continue;
+    const d = dist(p, puck);
+    if (d < bestD) { bestD = d; best = p; }
+  }
+  return best;
+}
+
+function bestPassTarget(carrier) {
+  let best = null, bestScore = -Infinity;
+  const attackDir = carrier.team === 0 ? 1 : -1;
+  for (const p of players) {
+    if (p === carrier || p.team !== carrier.team || p.role === 'goalie') continue;
+    const d = dist(p, carrier);
+    const ahead = (p.y - carrier.y) * attackDir;
+    
+    let sc = 0;
+    // STRONGLY reward forward passes
+    if (ahead > 0) sc += ahead * 2.0;
+    else sc += ahead * 0.3; // backward pass is ok but not preferred
+    
+    // Good passing distance: 50-150 range is ideal
+    if (d > 50 * S && d < 150 * S) sc += 60;
+    if (d < 30 * S) sc -= 80; // way too close, clumped
+    if (d > 200 * S) sc -= 40; // too far, risky
+    
+    // Reward open teammates heavily
+    const nearOpp = closestOpponent(p);
+    if (nearOpp) {
+      const oppD = dist(p, nearOpp);
+      if (oppD > 50 * S) sc += 60; // wide open
+      else if (oppD > 30 * S) sc += 20;
+      else if (oppD < 15 * S) sc -= 60; // well covered
+    }
+    
+    // Bonus for forwards (push play forward)
+    if (p.role === 'fwd') sc += 25;
+    
+    if (sc > bestScore) { bestScore = sc; best = p; }
+  }
+  return best;
+}
+
+function bestGoaliePassTarget(goalie) {
+  let best = null, bestScore = -Infinity;
+  for (const p of players) {
+    if (p === goalie || p.team !== goalie.team || p.role === 'goalie') continue;
+    const d = dist(goalie, p);
+    // Prefer defenders and center, penalize far players
+    let sc = -d * 0.5;
+    if (p.role === 'def') sc += 80 * S;
+    if (p.role === 'center') sc += 50 * S;
+    // Penalize if opponent is in the passing lane
+    const nearestOppToTarget = closestOpponent(p);
+    if (nearestOppToTarget && dist(p, nearestOppToTarget) < 25 * S) sc -= 60 * S;
+    if (sc > bestScore) { bestScore = sc; best = p; }
+  }
+  return best;
+}
+
+// ─── PHYSICS ────────────────────────────────────────────
+function puckUpdate(dt) {
+  const carrier = players.find(p => p.hasPuck);
+  if (carrier) {
+    const stickOffset = carrier.team === 0 ? 6*S : -6*S;
+    puck.x = carrier.x;
+    puck.y = carrier.y + stickOffset;
+    puck.vx = 0; puck.vy = 0;
+  } else {
+    // Friction
+    puck.vx *= 0.995;
+    puck.vy *= 0.995;
+    puck.x += puck.vx * dt;
+    puck.y += puck.vy * dt;
+    
+    // Wall bounce
+    if (puck.x < puck.r) { puck.x = puck.r; puck.vx = Math.abs(puck.vx) * 0.8; }
+    if (puck.x > W - puck.r) { puck.x = W - puck.r; puck.vx = -Math.abs(puck.vx) * 0.8; }
+    
+    // Goal check top
+    if (puck.y < GOAL_DEPTH) {
+      if (puck.x > GOAL_X && puck.x < GOAL_X + GOAL_W) {
+        // GOAL for blue (team 1)!
+        return 1;
+      } else {
+        puck.y = GOAL_DEPTH; puck.vy = Math.abs(puck.vy) * 0.8;
+      }
+    }
+    // Goal check bottom
+    if (puck.y > H - GOAL_DEPTH) {
+      if (puck.x > GOAL_X && puck.x < GOAL_X + GOAL_W) {
+        // GOAL for red (team 0)!
+        return 0;
+      } else {
+        puck.y = H - GOAL_DEPTH; puck.vy = -Math.abs(puck.vy) * 0.8;
+      }
+    }
+    
+    // Puck-player deflection (skip players on pickup cooldown)
+    for (const p of players) {
+      if (p.pickupCooldown > 0) continue;
+      const d = dist(p, puck);
+      if (d < p.r + puck.r && !p.hasPuck) {
+        const nx = (puck.x - p.x) / d;
+        const ny = (puck.y - p.y) / d;
+        puck.vx = nx * Math.hypot(puck.vx, puck.vy) * 0.6 + p.vx * 0.3;
+        puck.vy = ny * Math.hypot(puck.vx, puck.vy) * 0.6 + p.vy * 0.3;
+        puck.x = p.x + nx * (p.r + puck.r + 1);
+        puck.y = p.y + ny * (p.r + puck.r + 1);
+      }
+    }
+  }
+  
+  // Trail
+  puck.trail.push({ x: puck.x, y: puck.y });
+  if (puck.trail.length > 8) puck.trail.shift();
+  
+  return -1;
+}
+
+// ─── DRAWING ────────────────────────────────────────────
+function drawRink() {
+  // Ice
+  ctx.fillStyle = '#dde8f0';
+  ctx.fillRect(0, 0, W, H);
+  
+  // Subtle ice texture
+  ctx.globalAlpha = 0.04;
+  for (let i = 0; i < 60; i++) {
+    ctx.fillStyle = i % 2 ? '#fff' : '#b0c0d0';
+    ctx.fillRect(Math.random()*W, Math.random()*H, rand(20,80)*S, 1);
+  }
+  ctx.globalAlpha = 1;
+  
+  // Rink border
+  ctx.strokeStyle = '#556';
+  ctx.lineWidth = 3 * S;
+  const cr = 20 * S;
+  ctx.beginPath();
+  ctx.moveTo(cr, 0);
+  ctx.lineTo(W - cr, 0);
+  ctx.arcTo(W, 0, W, cr, cr);
+  ctx.lineTo(W, H - cr);
+  ctx.arcTo(W, H, W - cr, H, cr);
+  ctx.lineTo(cr, H);
+  ctx.arcTo(0, H, 0, H - cr, cr);
+  ctx.lineTo(0, cr);
+  ctx.arcTo(0, 0, cr, 0, cr);
+  ctx.stroke();
+  
+  // Center line
+  ctx.strokeStyle = '#c04040';
+  ctx.lineWidth = 2 * S;
+  ctx.beginPath();
+  ctx.moveTo(0, H/2);
+  ctx.lineTo(W, H/2);
+  ctx.stroke();
+  
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(W/2, H/2, 30*S, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(W/2, H/2, 3*S, 0, Math.PI * 2);
+  ctx.fillStyle = '#c04040';
+  ctx.fill();
+  
+  // Blue lines
+  ctx.strokeStyle = '#3060c0';
+  ctx.lineWidth = 2 * S;
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.3);
+  ctx.lineTo(W, H * 0.3);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.7);
+  ctx.lineTo(W, H * 0.7);
+  ctx.stroke();
+  
+  // Face-off circles
+  const faceoffs = [
+    [W*0.25, H*0.2], [W*0.75, H*0.2],
+    [W*0.25, H*0.8], [W*0.75, H*0.8],
+  ];
+  ctx.strokeStyle = '#c04040';
+  ctx.lineWidth = 1 * S;
+  for (const [fx, fy] of faceoffs) {
+    ctx.beginPath();
+    ctx.arc(fx, fy, 16*S, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(fx, fy, 2*S, 0, Math.PI*2);
+    ctx.fillStyle = '#c04040';
+    ctx.fill();
+  }
+  
+  // Goals
+  // Top goal (Red defends)
+  ctx.fillStyle = 'rgba(200,50,50,0.15)';
+  ctx.fillRect(GOAL_X, 0, GOAL_W, GOAL_DEPTH);
+  ctx.strokeStyle = '#c04040';
+  ctx.lineWidth = 2 * S;
+  ctx.strokeRect(GOAL_X, 0, GOAL_W, GOAL_DEPTH);
+  // Goal net lines
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(GOAL_X + i * GOAL_W/4, 0);
+    ctx.lineTo(GOAL_X + i * GOAL_W/4, GOAL_DEPTH);
+    ctx.strokeStyle = 'rgba(192,64,64,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  
+  // Bottom goal (Blue defends)
+  ctx.fillStyle = 'rgba(50,80,200,0.15)';
+  ctx.fillRect(GOAL_X, H - GOAL_DEPTH, GOAL_W, GOAL_DEPTH);
+  ctx.strokeStyle = '#3060c0';
+  ctx.lineWidth = 2 * S;
+  ctx.strokeRect(GOAL_X, H - GOAL_DEPTH, GOAL_W, GOAL_DEPTH);
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(GOAL_X + i * GOAL_W/4, H - GOAL_DEPTH);
+    ctx.lineTo(GOAL_X + i * GOAL_W/4, H);
+    ctx.strokeStyle = 'rgba(48,96,192,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  
+  // Crease arcs
+  ctx.strokeStyle = '#c04040';
+  ctx.lineWidth = 1.5 * S;
+  ctx.beginPath();
+  ctx.arc(W/2, 0, 26*S, 0, Math.PI);
+  ctx.stroke();
+  ctx.strokeStyle = '#3060c0';
+  ctx.beginPath();
+  ctx.arc(W/2, H, 26*S, Math.PI, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawPlayers() {
+  for (const p of players) {
+    const isCarrier = p.hasPuck;
+    
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath();
+    ctx.ellipse(p.x + 2*S, p.y + 2*S, p.r, p.r * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Body
+    const colors = p.team === 0
+      ? { body: '#d03030', outline: '#901818', helmet: '#ff5050' }
+      : { body: '#2060d0', outline: '#103080', helmet: '#50a0ff' };
+    
+    ctx.fillStyle = colors.body;
+    ctx.strokeStyle = colors.outline;
+    ctx.lineWidth = 1.5 * S;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Helmet highlight
+    ctx.fillStyle = colors.helmet;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y - 1.5*S, p.r * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Number for goalie
+    if (p.role === 'goalie') {
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${5*S}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('G', p.x, p.y + 1*S);
+    }
+    
+    // Carrier indicator
+    if (isCarrier) {
+      ctx.strokeStyle = '#ffcc00';
+      ctx.lineWidth = 1.5 * S;
+      ctx.setLineDash([3*S, 3*S]);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r + 3*S, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    
+    // Stick
+    const stickDir = p.team === 0 ? 1 : -1;
+    const stickAngle = Math.atan2(p.vy, p.vx);
+    ctx.strokeStyle = '#8B7355';
+    ctx.lineWidth = 1.5 * S;
+    ctx.beginPath();
+    ctx.moveTo(p.x + Math.cos(stickAngle) * p.r * 0.5, p.y + p.r * 0.7 * stickDir);
+    ctx.lineTo(p.x + Math.cos(stickAngle) * p.r * 0.5 + 7*S * (p.vx > 0 ? 1 : -1), p.y + p.r * 1.4 * stickDir);
+    ctx.stroke();
+  }
+}
+
+function drawPuck() {
+  // Trail
+  for (let i = 0; i < puck.trail.length; i++) {
+    const t = puck.trail[i];
+    const alpha = (i / puck.trail.length) * 0.3;
+    ctx.fillStyle = `rgba(20,20,20,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, puck.r * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Puck
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(puck.x, puck.y, puck.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#444';
+  ctx.beginPath();
+  ctx.arc(puck.x - 1*S, puck.y - 1*S, puck.r * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawUI() {
+  document.getElementById('score-red').textContent = score[0];
+  document.getElementById('score-blue').textContent = score[1];
+  document.getElementById('period-info').textContent = `P${period}`;
+  const mins = Math.floor(clock / 60);
+  const secs = Math.floor(clock % 60);
+  document.getElementById('game-time').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// ─── GAME LOOP ──────────────────────────────────────────
+let lastTime = 0;
+
+function gameLoop(ts) {
+  requestAnimationFrame(gameLoop);
+  const rawDt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  const dt = rawDt * gameSpeed;
+  
+  if (state === 'playing') {
+    clock -= dt;
+    if (clock <= 0) {
+      clock = 0;
+      if (period < TOTAL_PERIODS) {
+        state = 'periodEnd';
+        periodEndTimer = 2.0;
+      } else {
+        state = 'gameOver';
+      }
+    }
+    
+    aiUpdate(dt);
+    const goalScored = puckUpdate(dt);
+    if (goalScored >= 0) {
+      score[goalScored]++;
+      state = 'goal';
+      goalTimer = 2.0;
+      showGoalFlash();
+    }
+  } else if (state === 'goal') {
+    goalTimer -= rawDt;
+    if (goalTimer <= 0) {
+      resetPositions();
+      state = 'playing';
+    }
+  } else if (state === 'periodEnd') {
+    periodEndTimer -= rawDt;
+    if (periodEndTimer <= 0) {
+      period++;
+      clock = PERIOD_TIME;
+      resetPositions();
+      state = 'playing';
+    }
+  }
+  
+  // Draw
+  drawRink();
+  drawPlayers();
+  drawPuck();
+  drawUI();
+  
+  // Overlays
+  if (state === 'periodEnd') {
+    ctx.fillStyle = 'rgba(5,5,20,0.6)';
+    ctx.fillRect(0, H/2 - 30*S, W, 60*S);
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = `${10*S}px 'Press Start 2P', monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`END P${period}`, W/2, H/2);
+  }
+  if (state === 'gameOver') {
+    ctx.fillStyle = 'rgba(5,5,20,0.75)';
+    ctx.fillRect(0, H/2 - 50*S, W, 100*S);
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = `${8*S}px 'Press Start 2P', monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', W/2, H/2 - 18*S);
+    ctx.font = `${12*S}px 'Press Start 2P', monospace`;
+    ctx.fillText(`${score[0]} - ${score[1]}`, W/2, H/2 + 5*S);
+    const winner = score[0] > score[1] ? 'RED WINS!' : score[1] > score[0] ? 'BLUE WINS!' : 'TIE!';
+    ctx.font = `${7*S}px 'Press Start 2P', monospace`;
+    ctx.fillStyle = score[0] > score[1] ? '#ff5050' : score[1] > score[0] ? '#50a0ff' : '#fff';
+    ctx.fillText(winner, W/2, H/2 + 28*S);
+    ctx.font = `${4*S}px 'Press Start 2P', monospace`;
+    ctx.fillStyle = '#888';
+    ctx.fillText('TAP TO RESTART', W/2, H/2 + 42*S);
+  }
+}
+
+function showGoalFlash() {
+  const el = document.getElementById('goal-flash');
+  el.style.display = 'flex';
+  el.querySelector('span').style.animation = 'none';
+  void el.querySelector('span').offsetWidth;
+  el.querySelector('span').style.animation = 'goalPulse 0.6s ease-out';
+  setTimeout(() => { el.style.display = 'none'; }, 1500);
+}
+
+function startGame() {
+  if (state === 'gameOver') {
+    score = [0, 0]; period = 1;
+  }
+  if (state === 'menu' || state === 'gameOver') {
+    clock = PERIOD_TIME;
+    puck = makePuck();
+    players = makePlayers();
+    state = 'playing';
+    document.getElementById('msg-overlay').classList.add('hidden');
+  }
+}
+
+// Tap to restart after game over
+canvas.addEventListener('click', () => {
+  if (state === 'gameOver') startGame();
+});
+
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
