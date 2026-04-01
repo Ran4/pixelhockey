@@ -107,6 +107,16 @@ const H = RINK_H * S;
 const canvas = document.getElementById('c');
 canvas.width = W; canvas.height = H;
 const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// ─── SPRITES ────────────────────────────────────────────
+const spriteImages = {};
+const SPRITE_NAMES = ['player_red', 'player_blue', 'goalie_red', 'goalie_blue', 'puck'];
+for (const name of SPRITE_NAMES) {
+  const img = new Image();
+  img.src = `sprites/${name}.png`;
+  img.onload = () => { spriteImages[name] = img; };
+}
 
 function fitCanvas() {
   const pad = 8;
@@ -845,6 +855,11 @@ function drawRink() {
 function drawPlayers() {
   for (const p of players) {
     const isCarrier = p.hasPuck;
+    const spriteName = p.role === 'goalie'
+      ? (p.team === 0 ? 'goalie_red' : 'goalie_blue')
+      : (p.team === 0 ? 'player_red' : 'player_blue');
+    const sprite = spriteImages[spriteName];
+    const size = p.r * 2.5;
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
@@ -852,32 +867,31 @@ function drawPlayers() {
     ctx.ellipse(p.x + 2*S, p.y + 2*S, p.r, p.r * 0.6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Body
-    const colors = p.team === 0
-      ? { body: '#d03030', outline: '#901818', helmet: '#ff5050' }
-      : { body: '#2060d0', outline: '#103080', helmet: '#50a0ff' };
-
-    ctx.fillStyle = colors.body;
-    ctx.strokeStyle = colors.outline;
-    ctx.lineWidth = 1.5 * S;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Helmet highlight
-    ctx.fillStyle = colors.helmet;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y - 1.5*S, p.r * 0.55, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Number for goalie
-    if (p.role === 'goalie') {
-      ctx.fillStyle = '#fff';
-      ctx.font = `bold ${5*S}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('G', p.x, p.y + 1*S);
+    if (sprite) {
+      ctx.drawImage(sprite, p.x - size / 2, p.y - size / 2, size, size);
+    } else {
+      // Fallback circles while sprites load
+      const colors = p.team === 0
+        ? { body: '#d03030', outline: '#901818', helmet: '#ff5050' }
+        : { body: '#2060d0', outline: '#103080', helmet: '#50a0ff' };
+      ctx.fillStyle = colors.body;
+      ctx.strokeStyle = colors.outline;
+      ctx.lineWidth = 1.5 * S;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = colors.helmet;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y - 1.5*S, p.r * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+      if (p.role === 'goalie') {
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${5*S}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('G', p.x, p.y + 1*S);
+      }
     }
 
     // Carrier indicator
@@ -890,16 +904,6 @@ function drawPlayers() {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-
-    // Stick
-    const stickDir = defendsTop(p.team) ? 1 : -1;
-    const stickAngle = Math.atan2(p.vy, p.vx);
-    ctx.strokeStyle = '#8B7355';
-    ctx.lineWidth = 1.5 * S;
-    ctx.beginPath();
-    ctx.moveTo(p.x + Math.cos(stickAngle) * p.r * 0.5, p.y + p.r * 0.7 * stickDir);
-    ctx.lineTo(p.x + Math.cos(stickAngle) * p.r * 0.5 + 7*S * (p.vx > 0 ? 1 : -1), p.y + p.r * 1.4 * stickDir);
-    ctx.stroke();
   }
 }
 
@@ -915,14 +919,20 @@ function drawPuck() {
   }
 
   // Puck
-  ctx.fillStyle = '#111';
-  ctx.beginPath();
-  ctx.arc(puck.x, puck.y, puck.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#444';
-  ctx.beginPath();
-  ctx.arc(puck.x - 1*S, puck.y - 1*S, puck.r * 0.4, 0, Math.PI * 2);
-  ctx.fill();
+  const puckSprite = spriteImages['puck'];
+  if (puckSprite) {
+    const ps = puck.r * 2.5;
+    ctx.drawImage(puckSprite, puck.x - ps / 2, puck.y - ps / 2, ps, ps);
+  } else {
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(puck.x, puck.y, puck.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#444';
+    ctx.beginPath();
+    ctx.arc(puck.x - 1*S, puck.y - 1*S, puck.r * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawUI() {
@@ -1008,6 +1018,7 @@ function gameLoop(ts) {
   updateParticles(rawDt);
 
   // Draw
+  ctx.imageSmoothingEnabled = false;
   drawRink();
   drawPlayers();
   drawPuck();
