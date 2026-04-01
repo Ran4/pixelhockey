@@ -276,8 +276,10 @@ function aiUpdate(dt) {
         // Goalie: pass to best teammate IMMEDIATELY
         const target = bestGoaliePassTarget(p);
         if (target) {
-          const n = norm(target.x - p.x, target.y - p.y);
-          const power = Math.min(dist(p, target) * 1.2, 250 * S);
+          const lead = getPassLead(p, target);
+          const n = norm(lead.x - p.x, lead.y - p.y);
+          const aimDist = dist(p, lead);
+          const power = clamp(aimDist * 0.85, 100 * S, 230 * S);
           puck.vx = n.x * power;
           puck.vy = n.y * power;
           p.hasPuck = false;
@@ -330,11 +332,10 @@ function aiUpdate(dt) {
             if (p.holdTimer > 1.0 && Math.random() < 0.015) doPass = true;
 
             if (doPass && p.shootCooldown <= 0) {
-              const leadX = teammate.x + teammate.vx * 0.3;
-              const leadY = teammate.y + teammate.vy * 0.3;
-              const n = norm(leadX - p.x, leadY - p.y);
-              const passDist = dist(p, teammate);
-              const power = clamp(passDist * 1.1, 150 * S, 280 * S);
+              const lead = getPassLead(p, teammate);
+              const n = norm(lead.x - p.x, lead.y - p.y);
+              const aimDist = dist(p, lead);
+              const power = clamp(aimDist * 0.85, 100 * S, 230 * S);
               puck.vx = n.x * power;
               puck.vy = n.y * power;
               p.hasPuck = false;
@@ -570,13 +571,45 @@ function closestToPuck(team) {
   return best;
 }
 
+// Check if passing lane from→to is clear of opponents
+function passingLaneClear(from, to) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return false;
+  const nx = dx / len;
+  const ny = dy / len;
+  for (const opp of players) {
+    if (opp.team === from.team) continue;
+    const ox = opp.x - from.x;
+    const oy = opp.y - from.y;
+    const proj = ox * nx + oy * ny;
+    if (proj < 20 * S || proj > len - 10 * S) continue; // behind passer or past target
+    const perp = Math.abs(-ny * ox + nx * oy);
+    if (perp < 25 * S) return false;
+  }
+  return true;
+}
+
+// Compute where teammate will be when a pass arrives
+function getPassLead(from, teammate) {
+  const d = dist(from, teammate);
+  const passSpeed = clamp(d * 0.85, 100 * S, 230 * S);
+  const travelTime = d / passSpeed;
+  return {
+    x: teammate.x + teammate.vx * travelTime,
+    y: teammate.y + teammate.vy * travelTime,
+  };
+}
+
 function bestPassTarget(carrier) {
   let best = null, bestScore = -Infinity;
   const attackDir = defendsTop(carrier.team) ? 1 : -1;
   for (const p of players) {
     if (p === carrier || p.team !== carrier.team || p.role === 'goalie') continue;
     const d = dist(p, carrier);
-    const ahead = (p.y - carrier.y) * attackDir;
+    const lead = getPassLead(carrier, p);
+    const ahead = (lead.y - carrier.y) * attackDir;
 
     let sc = 0;
     if (ahead > 0) sc += ahead * 2.0;
@@ -593,6 +626,9 @@ function bestPassTarget(carrier) {
       else if (oppD > 30 * S) sc += 20;
       else if (oppD < 15 * S) sc -= 60;
     }
+
+    // Passing lane blocked = heavy penalty
+    if (!passingLaneClear(carrier, lead)) sc -= 120;
 
     if (p.role === 'fwd') sc += 25;
 
