@@ -249,6 +249,7 @@ function makePlayers() {
       shootCooldown: 0,
       holdTimer: 0,
       fatigue: 0,
+      facing: defendsTop(p0.team) ? Math.PI / 2 : -Math.PI / 2,
     });
   }
   return p;
@@ -474,6 +475,11 @@ function aiUpdate(dt) {
     const margin = p.r;
     p.x = clamp(p.x, margin, W - margin);
     p.y = clamp(p.y, margin, H - margin);
+
+    // Update facing angle when moving
+    if (sp > 20 * S) {
+      p.facing = Math.atan2(p.vy, p.vx);
+    }
 
     // Pick up puck (blocked by pickupCooldown)
     if (!carrier && !p.hasPuck && p.pickupCooldown <= 0 && dist(p, puck) < p.r + puck.r + 2*S) {
@@ -868,7 +874,11 @@ function drawPlayers() {
     ctx.fill();
 
     if (sprite) {
-      ctx.drawImage(sprite, p.x - size / 2, p.y - size / 2, size, size);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.facing - Math.PI / 2);
+      ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+      ctx.restore();
     } else {
       // Fallback circles while sprites load
       const colors = p.team === 0
