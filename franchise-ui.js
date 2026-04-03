@@ -302,7 +302,7 @@ function renderPostMatch(el) {
       for (let g = 0; g < ms.goals; g++) icons += 'G ';
       for (let a = 0; a < ms.assists; a++) icons += 'A ';
       for (let c = 0; c < ms.bodyChecks; c++) icons += 'H ';
-      const totalXp = 10 + (activeTeams[slot === 0 ? 0 : 1] === (r.home > r.away ? game.home : game.away) ? 20 : 5) + ms.goals * 30 + ms.assists * 20 + ms.bodyChecks * 10;
+      const totalXp = 20 + (activeTeams[slot === 0 ? 0 : 1] === (r.home > r.away ? game.home : game.away) ? 20 : 5) + ms.goals * 30 + ms.assists * 20 + ms.bodyChecks * 10;
       playersHtml += `<div class="fr-post-player">${rp.name} <span style="color:${teamColor}">${rp.role.toUpperCase()}</span> ${icons ? icons : ''}<span class="xp">+${totalXp} XP</span></div>`;
     }
   }

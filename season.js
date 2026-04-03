@@ -84,7 +84,7 @@ function recordResult(homeIdx, awayIdx, hGoals, aGoals, ot) {
 function simXpForTeam(teamIdx, won, goalsFor) {
   const roster = franchise.rosters[teamIdx];
   for (const p of roster) {
-    let xp = 10; // base
+    let xp = 20; // base
     xp += won ? 20 : 5;
     // Distribute some goal/assist xp randomly among non-goalies
     if (p.role !== 'goalie' && goalsFor > 0) {
@@ -147,7 +147,7 @@ function onMatchEnd() {
     for (let ri = 0; ri < roster.length; ri++) {
       const pi = slot * 6 + ri;
       const ms = matchStats[pi];
-      let xp = 10; // base
+      let xp = 20; // base
       xp += won ? 20 : 5;
       xp += ms.goals * 30;
       xp += ms.assists * 20;
@@ -270,7 +270,7 @@ function onPlayoffMatchEnd() {
     for (let ri = 0; ri < roster.length; ri++) {
       const pi = slot * 6 + ri;
       const ms = matchStats[pi];
-      let xp = 15;
+      let xp = 25;
       xp += won ? 30 : 5;
       xp += ms.goals * 30;
       xp += ms.assists * 20;
