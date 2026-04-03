@@ -758,31 +758,68 @@ function aiUpdate(dt) {
     // Pick up puck
     if (!carrier && !p.hasPuck && p.pickupCooldown <= 0 && dist(p, puck) < p.r + puck.r + 2*S) {
       const puckSpeed = Math.hypot(puck.vx, puck.vy);
-      const pickupChance = p.role === 'goalie' ? (0.2 + getPlayerStat(p, 'save') * 0.06) : 0.4;
-      if (puckSpeed < 200 * S || Math.random() < pickupChance) {
-        p.hasPuck = true;
-        p.holdTimer = 0;
-        p.puckShield = 0.5;
-        // Track carrier for goal attribution
-        const pi = players.indexOf(p);
-        const history = puckCarrierHistory[p.team];
-        if (history[0] !== pi) { history.unshift(pi); if (history.length > 3) history.pop(); }
 
-        // One-timer: receive pass near goal → instant shot
-        const oppGoalDist = dist(p, { x: W/2, y: oppGoalY });
-        if (puckSpeed > 80 * S && oppGoalDist < 120 * S && p.role !== 'goalie') {
-          const otPower = (240 + getPlayerStat(p, 'shot') * 22) * S;
-          const n = norm(W/2 - p.x + rand(-15*S, 15*S), oppGoalY - p.y);
-          puck.vx = n.x * otPower;
-          puck.vy = n.y * otPower;
-          p.hasPuck = false;
-          p.shootCooldown = 1.0;
-          p.pickupCooldown = 0.6;
-          spawnParticles(puck.x, puck.y, '#ffcc00', 10, 100 * S);
-          playSound('shot');
-        } else {
+      if (p.role === 'goalie') {
+        // Goalie: catch, rebound, or miss (goes through)
+        const saveStat = getPlayerStat(p, 'save');
+        const catchChance = puckSpeed < 80 * S
+          ? (0.35 + saveStat * 0.05)  // slow: 40%-85%
+          : (0.08 + saveStat * 0.04); // fast: 12%-48%
+        const blockChance = puckSpeed < 80 * S
+          ? (0.4 + saveStat * 0.04)   // slow: 44%-80%
+          : (0.25 + saveStat * 0.05); // fast: 30%-75%
+        const roll = Math.random();
+        if (roll < catchChance) {
+          // Clean catch
+          p.hasPuck = true;
+          p.holdTimer = 0;
+          p.puckShield = 0.5;
           puck.vx = 0; puck.vy = 0;
-          if (p.role === 'goalie') p.shootCooldown = 0;
+          p.shootCooldown = 0;
+          const pi = players.indexOf(p);
+          const history = puckCarrierHistory[p.team];
+          if (history[0] !== pi) { history.unshift(pi); if (history.length > 3) history.pop(); }
+        } else if (roll < catchChance + blockChance) {
+          // Rebound — block but don't catch
+          const d = dist(p, puck) || 1;
+          const nx = (puck.x - p.x) / d;
+          const ny = (puck.y - p.y) / d;
+          const reboundSpeed = puckSpeed * rand(0.25, 0.55);
+          const angle = Math.atan2(ny, nx) + rand(-0.8, 0.8);
+          puck.vx = Math.cos(angle) * reboundSpeed;
+          puck.vy = Math.sin(angle) * reboundSpeed;
+          puck.x = p.x + nx * (p.r + puck.r + 2);
+          puck.y = p.y + ny * (p.r + puck.r + 2);
+          p.pickupCooldown = 0.35;
+          spawnParticles(puck.x, puck.y, '#e0e8f0', 5, 50 * S);
+          playSound('board');
+        }
+        // else: miss — puck goes straight through
+      } else {
+        // Skater pickup
+        if (puckSpeed < 200 * S || Math.random() < 0.4) {
+          p.hasPuck = true;
+          p.holdTimer = 0;
+          p.puckShield = 0.5;
+          const pi = players.indexOf(p);
+          const history = puckCarrierHistory[p.team];
+          if (history[0] !== pi) { history.unshift(pi); if (history.length > 3) history.pop(); }
+
+          // One-timer: receive pass near goal → instant shot
+          const oppGoalDist = dist(p, { x: W/2, y: oppGoalY });
+          if (puckSpeed > 80 * S && oppGoalDist < 120 * S) {
+            const otPower = (240 + getPlayerStat(p, 'shot') * 22) * S;
+            const n = norm(W/2 - p.x + rand(-15*S, 15*S), oppGoalY - p.y);
+            puck.vx = n.x * otPower;
+            puck.vy = n.y * otPower;
+            p.hasPuck = false;
+            p.shootCooldown = 1.0;
+            p.pickupCooldown = 0.6;
+            spawnParticles(puck.x, puck.y, '#ffcc00', 10, 100 * S);
+            playSound('shot');
+          } else {
+            puck.vx = 0; puck.vy = 0;
+          }
         }
       }
     }
