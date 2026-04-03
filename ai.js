@@ -213,7 +213,7 @@ function aiUpdate(dt) {
       }
     }
 
-    if (d > 2) {
+    if (d > 2 && p.stunTimer <= 0) {
       const acc = spd * 4;
       p.vx += (dx / d) * acc * dt;
       p.vy += (dy / d) * acc * dt;
@@ -239,9 +239,9 @@ function aiUpdate(dt) {
     const fric = 0.92;
     p.vx *= fric; p.vy *= fric;
 
-    // Speed limit
+    // Speed limit (stunned players coast freely from knockback)
     const sp = Math.hypot(p.vx, p.vy);
-    if (sp > spd) { p.vx *= spd/sp; p.vy *= spd/sp; }
+    if (p.stunTimer <= 0 && sp > spd) { p.vx *= spd/sp; p.vy *= spd/sp; }
 
     // Move
     p.x += p.vx * dt;
@@ -381,7 +381,7 @@ function aiUpdate(dt) {
             // Direction: shover → shoved
             const nx = (opp.x - p.x) / d;
             const ny = (opp.y - p.y) / d;
-            const knockback = (150 + checkStat * 20) * S;
+            const knockback = (115 + checkStat * 14) * S;
 
             // Save shoved player's velocity before hit (for puck)
             const prevVx = opp.vx;
@@ -390,7 +390,7 @@ function aiUpdate(dt) {
             // Apply knockback
             opp.vx = nx * knockback;
             opp.vy = ny * knockback;
-            opp.stunTimer = 0.3;
+            opp.stunTimer = 2.2 - getPlayerStat(opp, 'defense') * 0.1;
             p.shoveCooldown = 2.0;
 
             // Puck: follows shoved player's pre-shove velocity with slight random offset
