@@ -30,7 +30,7 @@ if not API_KEY:
     sys.exit(1)
 
 SOUNDS = [
-    ("shot", "Hockey slap shot, hard stick hitting puck, sharp crack on ice rink", 1.0),
+    ("shot", "Wooden hockey stick slapping rubber puck, sharp wood-on-puck crack, dry snappy impact, no reverb", 1.0),
     ("pass", "Soft hockey stick puck tap, gentle pass sound on ice", 0.5),
     ("board", "Hockey puck hitting boards, hard thud against wooden barrier wall", 0.8),
     ("goal", "Hockey goal horn, loud arena horn blast, brief crowd cheer", 2.5),
