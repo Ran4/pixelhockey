@@ -76,74 +76,74 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: rgba(5,5,20,0.95); color: #fff; z-index: 20;
     font-family: 'Press Start 2P', monospace; text-align: center;
-    overflow-y: auto; padding: 16px 8px;
+    overflow-y: auto; padding: 32px 16px;
   }
   #franchise-screen.hidden { display: none; }
-  #franchise-content { max-width: 480px; width: 100%; }
-  .fr-title { font-size: 16px; color: #ffcc00; margin-bottom: 12px; text-shadow: 2px 2px #000; }
-  .fr-subtitle { font-size: 9px; color: #8888aa; margin-bottom: 16px; }
+  #franchise-content { max-width: 960px; width: 100%; }
+  .fr-title { font-size: 22px; color: #ffcc00; margin-bottom: 24px; text-shadow: 2px 2px #000; }
+  .fr-subtitle { font-size: 13px; color: #8888aa; margin-bottom: 32px; }
   .fr-btn {
-    font-family: 'Press Start 2P', monospace; font-size: 10px;
-    padding: 10px 20px; margin: 6px;
+    font-family: 'Press Start 2P', monospace; font-size: 14px;
+    padding: 20px 40px; margin: 12px;
     background: #1a1a2e; color: #ddd; border: 2px solid #445;
-    border-radius: 4px; cursor: pointer; transition: all 0.15s;
+    border-radius: 6px; cursor: pointer; transition: all 0.15s;
     display: inline-block;
   }
   .fr-btn:hover { color: #ffcc00; border-color: #ffcc00; background: #222244; }
   .fr-btn:active { transform: scale(0.96); }
   .fr-btn.primary { color: #ffcc00; border-color: #ffcc00; }
   .fr-btn.disabled { opacity: 0.3; pointer-events: none; }
-  .fr-btn.team-btn { padding: 12px 16px; margin: 4px; font-size: 11px; min-width: 80px; }
-  .fr-table { width: 100%; border-collapse: collapse; font-size: 7px; margin: 10px 0; text-align: left; }
-  .fr-table th { color: #8888aa; padding: 4px 3px; border-bottom: 1px solid #334; }
-  .fr-table td { padding: 4px 3px; border-bottom: 1px solid #1a1a2e; }
+  .fr-btn.team-btn { padding: 24px 32px; margin: 8px; font-size: 15px; min-width: 150px; }
+  .fr-table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 20px 0; text-align: left; }
+  .fr-table th { color: #8888aa; padding: 10px 8px; border-bottom: 1px solid #334; }
+  .fr-table td { padding: 10px 8px; border-bottom: 1px solid #1a1a2e; }
   .fr-table tr.my-team td { color: #ffcc00; }
   .fr-table tr.playoff-line td { border-bottom: 1px dashed #ffcc00; }
-  .fr-results { font-size: 7px; color: #aaa; margin: 8px 0; line-height: 2.2; text-align: left; }
+  .fr-results { font-size: 11px; color: #aaa; margin: 16px 0; line-height: 3; text-align: left; }
   .fr-results .win { color: #5f5; }
   .fr-results .loss { color: #f55; }
   .fr-results .otl { color: #fa5; }
   .fr-roster-card {
-    background: #111128; border: 1px solid #334; border-radius: 4px;
-    padding: 8px; margin: 6px 0; text-align: left;
+    background: #111128; border: 1px solid #334; border-radius: 8px;
+    padding: 16px; margin: 12px 0; text-align: left;
   }
   .fr-roster-card.has-points { border-color: #ffcc00; }
-  .fr-player-name { font-size: 8px; color: #ddd; }
-  .fr-player-role { font-size: 7px; color: #8888aa; margin-left: 6px; }
-  .fr-player-level { font-size: 7px; color: #ffcc00; float: right; }
-  .fr-stats { margin-top: 5px; }
-  .fr-stat-row { display: flex; align-items: center; gap: 4px; margin: 2px 0; font-size: 6px; }
-  .fr-stat-label { width: 28px; color: #8888aa; text-align: right; }
-  .fr-stat-bar { display: flex; gap: 2px; }
-  .fr-stat-pip { width: 8px; height: 6px; border-radius: 1px; background: #222; border: 1px solid #334; }
+  .fr-player-name { font-size: 15px; color: #ddd; }
+  .fr-player-role { font-size: 13px; color: #8888aa; margin-left: 8px; }
+  .fr-player-level { font-size: 13px; color: #ffcc00; float: right; }
+  .fr-stats { margin-top: 10px; }
+  .fr-stat-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 12px; }
+  .fr-stat-label { width: 58px; color: #8888aa; text-align: right; }
+  .fr-stat-bar { display: flex; gap: 4px; }
+  .fr-stat-pip { width: 16px; height: 12px; border-radius: 2px; background: #222; border: 1px solid #334; }
   .fr-stat-pip.filled { background: #4488cc; border-color: #5599dd; }
   .fr-stat-pip.filled.high { background: #44cc66; border-color: #55dd77; }
-  .fr-stat-val { color: #aaa; width: 14px; text-align: right; }
+  .fr-stat-val { color: #aaa; width: 20px; text-align: right; }
   .fr-upgrade-btn {
-    font-family: 'Press Start 2P', monospace; font-size: 6px;
-    padding: 2px 5px; margin-left: 4px;
+    font-family: 'Press Start 2P', monospace; font-size: 12px;
+    padding: 4px 8px; margin-left: 6px;
     background: #332200; color: #ffcc00; border: 1px solid #ffcc00;
     border-radius: 2px; cursor: pointer;
   }
   .fr-upgrade-btn:hover { background: #443300; }
-  .fr-xp-bar { width: 100%; height: 4px; background: #222; border-radius: 2px; margin-top: 4px; }
-  .fr-xp-fill { height: 100%; background: #8855cc; border-radius: 2px; transition: width 0.3s; }
+  .fr-xp-bar { width: 100%; height: 8px; background: #222; border-radius: 4px; margin-top: 8px; }
+  .fr-xp-fill { height: 100%; background: #8855cc; border-radius: 4px; transition: width 0.3s; }
   .fr-event-card {
-    background: #1a1a30; border: 1px solid #556; border-radius: 4px;
-    padding: 10px; margin: 10px 0; font-size: 8px; color: #ddd; line-height: 1.8;
+    background: #1a1a30; border: 1px solid #556; border-radius: 8px;
+    padding: 20px; margin: 20px 0; font-size: 12px; color: #ddd; line-height: 2;
   }
-  .fr-matchup { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 16px 0; }
-  .fr-matchup-team { font-size: 14px; }
-  .fr-matchup-vs { font-size: 9px; color: #8888aa; }
-  .fr-post-player { font-size: 7px; text-align: left; padding: 3px 0; line-height: 1.8; color: #ccc; }
+  .fr-matchup { display: flex; align-items: center; justify-content: center; gap: 32px; margin: 32px 0; }
+  .fr-matchup-team { font-size: 20px; }
+  .fr-matchup-vs { font-size: 13px; color: #8888aa; }
+  .fr-post-player { font-size: 11px; text-align: left; padding: 6px 0; line-height: 2.4; color: #ccc; }
   .fr-post-player .xp { color: #8855cc; }
   .fr-post-player .levelup { color: #ffcc00; }
-  .fr-bracket { font-size: 7px; margin: 12px 0; }
-  .fr-bracket-round { margin: 8px 0; }
-  .fr-bracket-game { display: inline-block; background: #111128; border: 1px solid #334; border-radius: 3px; padding: 6px 10px; margin: 3px; }
+  .fr-bracket { font-size: 11px; margin: 24px 0; }
+  .fr-bracket-round { margin: 16px 0; }
+  .fr-bracket-game { display: inline-block; background: #111128; border: 1px solid #334; border-radius: 5px; padding: 12px 20px; margin: 6px; }
   .fr-bracket-winner { color: #ffcc00; }
-  .fr-section-title { font-size: 9px; color: #ffcc00; margin: 14px 0 6px 0; text-align: left; }
-  .fr-scroll { max-height: 70vh; overflow-y: auto; }
+  .fr-section-title { font-size: 13px; color: #ffcc00; margin: 28px 0 12px 0; text-align: left; }
+  .fr-scroll { max-height: 75vh; overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -358,7 +358,7 @@ function setSpeed(s) {
 const GOAL_W = 36 * S;
 const GOAL_DEPTH = 10 * S;
 const GOAL_X = (W - GOAL_W) / 2;
-const PERIOD_TIME = 120;
+const PERIOD_TIME = 90;
 const OT_TIME = 60;
 const TOTAL_PERIODS = 3;
 const PENALTY_DURATION = 30; // game seconds
@@ -2089,7 +2089,8 @@ function renderRoster(el) {
       const upgradeBtn = hasPoints && val < 10
         ? `<button class="fr-upgrade-btn" onclick="doUpgrade(${ri},'${stat}')">+</button>`
         : '';
-      const label = stat.substring(0, 3).toUpperCase();
+      const STAT_LABELS = { speed:'SPEED', shot:'SHOT', pass:'PASS', check:'CHECK', defense:'DEF', save:'SAVE', positioning:'POS.' };
+      const label = STAT_LABELS[stat] || stat.toUpperCase();
       statsHtml += `<div class="fr-stat-row"><span class="fr-stat-label">${label}</span><div class="fr-stat-bar">${pips}</div><span class="fr-stat-val">${val}</span>${upgradeBtn}</div>`;
     }
 
