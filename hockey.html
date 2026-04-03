@@ -23,8 +23,7 @@
   }
   .team-score { display: flex; align-items: center; gap: 6px; }
   .team-dot { width: 10px; height: 10px; border-radius: 2px; }
-  .red { background: #e04040; }
-  .blue { background: #4080e0; }
+  .team-dot { }
   #period-info { color: #8888aa; font-size: 9px; }
   #game-time { color: #ffcc00; font-size: 13px; font-weight: bold; }
   canvas {
@@ -71,15 +70,89 @@
   #speed-controls button.active {
     color: #ffcc00; border-color: #ffcc00;
   }
+  /* ─── FRANCHISE UI ─────────────────────────────── */
+  #franchise-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(5,5,20,0.95); color: #fff; z-index: 20;
+    font-family: 'Press Start 2P', monospace; text-align: center;
+    overflow-y: auto; padding: 16px 8px;
+  }
+  #franchise-screen.hidden { display: none; }
+  #franchise-content { max-width: 480px; width: 100%; }
+  .fr-title { font-size: 16px; color: #ffcc00; margin-bottom: 12px; text-shadow: 2px 2px #000; }
+  .fr-subtitle { font-size: 9px; color: #8888aa; margin-bottom: 16px; }
+  .fr-btn {
+    font-family: 'Press Start 2P', monospace; font-size: 10px;
+    padding: 10px 20px; margin: 6px;
+    background: #1a1a2e; color: #ddd; border: 2px solid #445;
+    border-radius: 4px; cursor: pointer; transition: all 0.15s;
+    display: inline-block;
+  }
+  .fr-btn:hover { color: #ffcc00; border-color: #ffcc00; background: #222244; }
+  .fr-btn:active { transform: scale(0.96); }
+  .fr-btn.primary { color: #ffcc00; border-color: #ffcc00; }
+  .fr-btn.disabled { opacity: 0.3; pointer-events: none; }
+  .fr-btn.team-btn { padding: 12px 16px; margin: 4px; font-size: 11px; min-width: 80px; }
+  .fr-table { width: 100%; border-collapse: collapse; font-size: 7px; margin: 10px 0; text-align: left; }
+  .fr-table th { color: #8888aa; padding: 4px 3px; border-bottom: 1px solid #334; }
+  .fr-table td { padding: 4px 3px; border-bottom: 1px solid #1a1a2e; }
+  .fr-table tr.my-team td { color: #ffcc00; }
+  .fr-table tr.playoff-line td { border-bottom: 1px dashed #ffcc00; }
+  .fr-results { font-size: 7px; color: #aaa; margin: 8px 0; line-height: 2.2; text-align: left; }
+  .fr-results .win { color: #5f5; }
+  .fr-results .loss { color: #f55; }
+  .fr-results .otl { color: #fa5; }
+  .fr-roster-card {
+    background: #111128; border: 1px solid #334; border-radius: 4px;
+    padding: 8px; margin: 6px 0; text-align: left;
+  }
+  .fr-roster-card.has-points { border-color: #ffcc00; }
+  .fr-player-name { font-size: 8px; color: #ddd; }
+  .fr-player-role { font-size: 7px; color: #8888aa; margin-left: 6px; }
+  .fr-player-level { font-size: 7px; color: #ffcc00; float: right; }
+  .fr-stats { margin-top: 5px; }
+  .fr-stat-row { display: flex; align-items: center; gap: 4px; margin: 2px 0; font-size: 6px; }
+  .fr-stat-label { width: 28px; color: #8888aa; text-align: right; }
+  .fr-stat-bar { display: flex; gap: 2px; }
+  .fr-stat-pip { width: 8px; height: 6px; border-radius: 1px; background: #222; border: 1px solid #334; }
+  .fr-stat-pip.filled { background: #4488cc; border-color: #5599dd; }
+  .fr-stat-pip.filled.high { background: #44cc66; border-color: #55dd77; }
+  .fr-stat-val { color: #aaa; width: 14px; text-align: right; }
+  .fr-upgrade-btn {
+    font-family: 'Press Start 2P', monospace; font-size: 6px;
+    padding: 2px 5px; margin-left: 4px;
+    background: #332200; color: #ffcc00; border: 1px solid #ffcc00;
+    border-radius: 2px; cursor: pointer;
+  }
+  .fr-upgrade-btn:hover { background: #443300; }
+  .fr-xp-bar { width: 100%; height: 4px; background: #222; border-radius: 2px; margin-top: 4px; }
+  .fr-xp-fill { height: 100%; background: #8855cc; border-radius: 2px; transition: width 0.3s; }
+  .fr-event-card {
+    background: #1a1a30; border: 1px solid #556; border-radius: 4px;
+    padding: 10px; margin: 10px 0; font-size: 8px; color: #ddd; line-height: 1.8;
+  }
+  .fr-matchup { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 16px 0; }
+  .fr-matchup-team { font-size: 14px; }
+  .fr-matchup-vs { font-size: 9px; color: #8888aa; }
+  .fr-post-player { font-size: 7px; text-align: left; padding: 3px 0; line-height: 1.8; color: #ccc; }
+  .fr-post-player .xp { color: #8855cc; }
+  .fr-post-player .levelup { color: #ffcc00; }
+  .fr-bracket { font-size: 7px; margin: 12px 0; }
+  .fr-bracket-round { margin: 8px 0; }
+  .fr-bracket-game { display: inline-block; background: #111128; border: 1px solid #334; border-radius: 3px; padding: 6px 10px; margin: 3px; }
+  .fr-bracket-winner { color: #ffcc00; }
+  .fr-section-title { font-size: 9px; color: #ffcc00; margin: 14px 0 6px 0; text-align: left; }
+  .fr-scroll { max-height: 70vh; overflow-y: auto; }
 </style>
 </head>
 <body>
 <div id="game-wrap">
   <div id="scoreboard">
-    <div class="team-score"><div class="team-dot red"></div><span id="score-red">0</span></div>
+    <div class="team-score"><div class="team-dot" id="dot-0"></div><span id="score-0">0</span></div>
     <span id="period-info">P1</span>
     <span id="game-time">20:00</span>
-    <div class="team-score"><span id="score-blue">0</span><div class="team-dot blue"></div></div>
+    <div class="team-score"><span id="score-1">0</span><div class="team-dot" id="dot-1"></div></div>
   </div>
   <canvas id="c"></canvas>
   <div id="speed-controls">
@@ -90,11 +163,12 @@
   </div>
 </div>
 
-<div id="msg-overlay" onclick="startGame()">
+<div id="msg-overlay" class="hidden">
   <h1>🏒 PIXEL HOCKEY</h1>
-  <p>RED vs BLUE<br><br>3 Perioder × 2 min<br><br>Tryck för att starta!</p>
+  <p id="menu-matchup"></p>
 </div>
 <div id="goal-flash"><span>GOAL!</span></div>
+<div id="franchise-screen"><div id="franchise-content"></div></div>
 
 <script>
 // ─── CONFIG ─────────────────────────────────────────────
@@ -109,9 +183,128 @@ canvas.width = W; canvas.height = H;
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
+// ─── TEAMS ─────────────────────────────────────────────
+const TEAMS = [
+  { name: 'RED',    body: '#d03030', outline: '#901818', helmet: '#ff5050', light: '#ff5050', dot: '#e04040', bg: 'rgba(255,60,60,0.15)',  goalFill: 'rgba(200,50,50,0.15)',  goalStroke: '#c04040', goalNet: 'rgba(192,64,64,0.3)' },
+  { name: 'BLUE',   body: '#2060d0', outline: '#103080', helmet: '#50a0ff', light: '#50a0ff', dot: '#4080e0', bg: 'rgba(60,100,255,0.15)', goalFill: 'rgba(50,80,200,0.15)',  goalStroke: '#3060c0', goalNet: 'rgba(48,96,192,0.3)' },
+  { name: 'GREEN',  body: '#20a040', outline: '#107020', helmet: '#50e070', light: '#50e070', dot: '#40c060', bg: 'rgba(60,255,100,0.15)', goalFill: 'rgba(50,200,80,0.15)',  goalStroke: '#30a050', goalNet: 'rgba(48,192,80,0.3)' },
+  { name: 'YELLOW', body: '#c0a020', outline: '#907010', helmet: '#ffe050', light: '#ffe050', dot: '#d0b030', bg: 'rgba(255,220,60,0.15)', goalFill: 'rgba(200,180,50,0.15)', goalStroke: '#c0a030', goalNet: 'rgba(192,170,48,0.3)' },
+  { name: 'PURPLE', body: '#8030c0', outline: '#501880', helmet: '#c060ff', light: '#c060ff', dot: '#9050d0', bg: 'rgba(160,60,255,0.15)', goalFill: 'rgba(130,50,200,0.15)', goalStroke: '#8040c0', goalNet: 'rgba(128,64,192,0.3)' },
+];
+let activeTeams = [0, 1]; // indices into TEAMS, randomized at match start
+function teamOf(slot) { return TEAMS[activeTeams[slot]]; }
+
+// ─── NAME POOLS ────────────────────────────────────────
+const NAME_POOLS = {
+  SWE: {
+    initials: 'ABEHJKLMNOPRSTV',
+    surnames: ['Lindqvist','Bergström','Johansson','Pettersson','Eriksson','Nyström','Hedman','Forsberg','Sundqvist','Lundin','Bäckström','Karlsson','Nilsson','Zetterberg','Lidström','Sedin','Alfredsson','Nylander','Höglund','Holmström'],
+  },
+  FIN: {
+    initials: 'AEHIJKLMNOPRSTV',
+    surnames: ['Koivu','Selänne','Laine','Rantanen','Barkov','Jokinen','Teräväinen','Ristolainen','Granlund','Haula','Räsänen','Salminen','Virtanen','Lehto','Mäkinen','Niskanen','Korpikoski','Filppula','Pulkkinen','Hietanen'],
+  },
+  RUS: {
+    initials: 'ADEVIKMNPSY',
+    surnames: ['Ovechkin','Malkin','Kucherov','Panarin','Tarasenko','Vasilevskiy','Svechnikov','Kaprizov','Sergachev','Provorov','Kuznetsov','Radulov','Bobrovsky','Marchenko','Voronov','Fedorov','Bure','Mogilny','Kovalev','Datsyuk'],
+  },
+  CAN: {
+    initials: 'ABCDJKLMNPRST',
+    surnames: ['MacDonald','Crosby','Bergeron','Marchand','McDavid','Giroux','Stamkos','Tavares','Toews','MacKinnon','Chabot','Morrissey','Murray','Thompson','Wilson','Roberts','Campbell','Mitchell','Fraser','Henderson'],
+  },
+  CZE: {
+    initials: 'ADFJKLMNOPRTV',
+    surnames: ['Jágr','Pastrňák','Voráček','Hertl','Krejčí','Palát','Nečas','Hronek','Chytil','Šimek','Kovář','Zadina','Nosek','Kämpf','Vrána','Zbořil','Sedlák','Flek','Blümel','Rutta'],
+  },
+  USA: {
+    initials: 'ABCDJKMNPRST',
+    surnames: ['Kane','Matthews','Tkachuk','Hughes','Eichel','Gaudreau','DeBrincat','Fox','Werenski','Carlson','Miller','Anderson','Johnson','Baker','Clark','Nelson','Peterson','Sullivan','Brady','Murphy'],
+  },
+};
+const NATIONALITIES = Object.keys(NAME_POOLS);
+
+function generateName(nationality) {
+  const pool = NAME_POOLS[nationality];
+  const initial = pool.initials[Math.floor(Math.random() * pool.initials.length)];
+  const surname = pool.surnames[Math.floor(Math.random() * pool.surnames.length)];
+  return `${initial}. ${surname}`;
+}
+
+// ─── FRANCHISE STATE ────────────────────────────────────
+let franchise = null;
+let screenState = 'title';
+let matchStats = null; // per-match tracking
+let puckCarrierHistory = [[], []]; // last carriers per team slot
+
+const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200];
+const STAT_NAMES_SKATER = ['speed','shot','pass','check','defense'];
+const STAT_NAMES_GOALIE = ['speed','save','positioning'];
+
+const STAT_RANGES = {
+  fwd:    { speed: [5,7], shot: [5,7], pass: [4,6], check: [3,5], defense: [3,5] },
+  center: { speed: [5,6], shot: [4,6], pass: [6,8], check: [4,6], defense: [4,6] },
+  def:    { speed: [4,6], shot: [3,5], pass: [5,7], check: [5,7], defense: [6,8] },
+  goalie: { speed: [5,7], save: [5,8], positioning: [5,7] },
+};
+
+const AUTO_LEVEL_PRIORITY = {
+  fwd:    ['shot','speed','pass','check','defense'],
+  center: ['pass','speed','shot','defense','check'],
+  def:    ['defense','check','pass','speed','shot'],
+  goalie: ['save','positioning','speed'],
+};
+
+function randInt(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+
+function createRosterForTeam(teamIdx) {
+  const nat = NATIONALITIES[Math.floor(Math.random() * NATIONALITIES.length)];
+  const roles = ['goalie','def','def','fwd','fwd','center'];
+  const roster = [];
+  const usedNames = new Set();
+  for (const role of roles) {
+    const playerNat = Math.random() < 0.9 ? nat : NATIONALITIES[Math.floor(Math.random() * NATIONALITIES.length)];
+    let name;
+    do { name = generateName(playerNat); } while (usedNames.has(name));
+    usedNames.add(name);
+    const ranges = STAT_RANGES[role];
+    const stats = {};
+    for (const [stat, [lo, hi]] of Object.entries(ranges)) {
+      stats[stat] = randInt(lo, hi);
+    }
+    roster.push({ name, role, stats, xp: 0, level: 1, unspentPoints: 0, nationality: playerNat });
+  }
+  return roster;
+}
+
+function createNewFranchise(playerTeamIdx) {
+  const rosters = {};
+  for (let i = 0; i < TEAMS.length; i++) {
+    rosters[i] = createRosterForTeam(i);
+  }
+  franchise = {
+    version: 1,
+    playerTeam: playerTeamIdx,
+    season: 1,
+    schedule: [],
+    currentRound: 0,
+    standings: {},
+    rosters,
+    playoffState: null,
+    seasonStats: {}, // cumulative goals/assists per player per season
+  };
+  generateSchedule();
+  initStandings();
+  initSeasonStats();
+  return franchise;
+}
+
 // ─── SPRITES ────────────────────────────────────────────
 const spriteImages = {};
-const SPRITE_NAMES = ['player_red', 'player_blue', 'goalie_red', 'goalie_blue', 'puck'];
+const SPRITE_NAMES = [
+  'player_red', 'player_blue', 'player_green', 'player_yellow', 'player_purple',
+  'goalie_red', 'goalie_blue', 'goalie_green', 'goalie_yellow', 'goalie_purple',
+  'puck',
+];
 for (const name of SPRITE_NAMES) {
   const img = new Image();
   img.src = `sprites/${name}.png`;
@@ -266,10 +459,19 @@ function getTeamPositions(team) {
   }));
 }
 
+function getPlayerStat(p, stat) {
+  if (!p.rosterData) return 5; // fallback
+  return p.rosterData.stats[stat] || 5;
+}
+
 function makePlayers() {
   const p = [];
   const positions = [...getTeamPositions(0), ...getTeamPositions(1)];
-  for (const p0 of positions) {
+  for (let i = 0; i < positions.length; i++) {
+    const p0 = positions[i];
+    const teamRealIdx = activeTeams[p0.team];
+    const localIdx = i < 6 ? i : i - 6; // index within team roster
+    const rosterData = franchise ? franchise.rosters[teamRealIdx][localIdx] : null;
     p.push({
       ...p0,
       x: p0.hx, y: p0.hy,
@@ -285,6 +487,8 @@ function makePlayers() {
       iceTrail: [],
       penalized: false,
       penaltyTimer: 0,
+      rosterData,
+      rosterIdx: localIdx,
     });
   }
   return p;
@@ -340,7 +544,8 @@ function aiUpdate(dt) {
     }
 
     let tx = p.hx, ty = p.hy;
-    const spd = p.role === 'goalie' ? 110 * S : 130 * S;
+    const spdStat = getPlayerStat(p, 'speed');
+    const spd = p.role === 'goalie' ? (80 + spdStat * 6) * S : (90 + spdStat * 8) * S;
     const defTop = defendsTop(p.team);
     const attackDir = defTop ? 1 : -1;
     const ownGoalY = defTop ? 0 : H;
@@ -373,11 +578,14 @@ function aiUpdate(dt) {
         const goalX = W / 2;
         const goalY = oppGoalY;
         const dg = dist(p, { x: goalX, y: goalY });
+        const shotStat = getPlayerStat(p, 'shot');
+        const shotRange = (70 + shotStat * 8) * S;
+        const shotPower = (220 + shotStat * 20) * S;
 
-        if (dg < 110 * S && p.shootCooldown <= 0) {
+        if (dg < shotRange && p.shootCooldown <= 0) {
           const n = norm(goalX - p.x + rand(-20*S, 20*S), goalY - p.y);
-          puck.vx = n.x * 320 * S;
-          puck.vy = n.y * 320 * S;
+          puck.vx = n.x * shotPower;
+          puck.vy = n.y * shotPower;
           p.hasPuck = false;
           p.shootCooldown = 1.0;
           p.pickupCooldown = 0.6;
@@ -550,17 +758,23 @@ function aiUpdate(dt) {
     // Pick up puck
     if (!carrier && !p.hasPuck && p.pickupCooldown <= 0 && dist(p, puck) < p.r + puck.r + 2*S) {
       const puckSpeed = Math.hypot(puck.vx, puck.vy);
-      if (puckSpeed < 200 * S || Math.random() < 0.4) {
+      const pickupChance = p.role === 'goalie' ? (0.2 + getPlayerStat(p, 'save') * 0.06) : 0.4;
+      if (puckSpeed < 200 * S || Math.random() < pickupChance) {
         p.hasPuck = true;
         p.holdTimer = 0;
         p.puckShield = 0.5;
+        // Track carrier for goal attribution
+        const pi = players.indexOf(p);
+        const history = puckCarrierHistory[p.team];
+        if (history[0] !== pi) { history.unshift(pi); if (history.length > 3) history.pop(); }
 
         // One-timer: receive pass near goal → instant shot
         const oppGoalDist = dist(p, { x: W/2, y: oppGoalY });
         if (puckSpeed > 80 * S && oppGoalDist < 120 * S && p.role !== 'goalie') {
+          const otPower = (240 + getPlayerStat(p, 'shot') * 22) * S;
           const n = norm(W/2 - p.x + rand(-15*S, 15*S), oppGoalY - p.y);
-          puck.vx = n.x * 350 * S;
-          puck.vy = n.y * 350 * S;
+          puck.vx = n.x * otPower;
+          puck.vy = n.y * otPower;
           p.hasPuck = false;
           p.shootCooldown = 1.0;
           p.pickupCooldown = 0.6;
@@ -575,13 +789,15 @@ function aiUpdate(dt) {
 
     // Body check
     if (carrier && carrier.team !== p.team && carrier.puckShield <= 0 && carrier.role !== 'goalie' && p.role !== 'goalie' && !p.penalized && dist(p, carrier) < p.r * 2.2) {
-      if (Math.random() < 0.12) {
+      const checkRate = 0.04 + getPlayerStat(p, 'check') * 0.016;
+      if (Math.random() < checkRate) {
         carrier.hasPuck = false;
         carrier.pickupCooldown = 0.6;
         puck.vx = rand(-60, 60) * S;
         puck.vy = rand(-60, 60) * S;
         spawnParticles(carrier.x, carrier.y, '#fff', 6, 60 * S);
         playSound('body_check');
+        if (matchStats) { const pi = players.indexOf(p); matchStats[pi].bodyChecks++; }
 
         // Penalty chance
         if (Math.random() < 0.25 && !pendingPenalty) {
@@ -828,7 +1044,8 @@ function puckUpdate(dt) {
 
 // ─── DRAWING ────────────────────────────────────────────
 function drawRink() {
-  const topIsRed = defendsTop(0);
+  const topSlot = defendsTop(0) ? 0 : 1;
+  const botSlot = 1 - topSlot;
 
   // Ice
   ctx.fillStyle = '#dde8f0';
@@ -920,12 +1137,10 @@ function drawRink() {
   }
 
   // Goals
-  const topGoal = topIsRed
-    ? { fill: 'rgba(200,50,50,0.15)', stroke: '#c04040', net: 'rgba(192,64,64,0.3)' }
-    : { fill: 'rgba(50,80,200,0.15)', stroke: '#3060c0', net: 'rgba(48,96,192,0.3)' };
-  const botGoal = topIsRed
-    ? { fill: 'rgba(50,80,200,0.15)', stroke: '#3060c0', net: 'rgba(48,96,192,0.3)' }
-    : { fill: 'rgba(200,50,50,0.15)', stroke: '#c04040', net: 'rgba(192,64,64,0.3)' };
+  const tTop = teamOf(topSlot);
+  const tBot = teamOf(botSlot);
+  const topGoal = { fill: tTop.goalFill, stroke: tTop.goalStroke, net: tTop.goalNet };
+  const botGoal = { fill: tBot.goalFill, stroke: tBot.goalStroke, net: tBot.goalNet };
 
   ctx.fillStyle = topGoal.fill;
   ctx.fillRect(GOAL_X, 0, GOAL_W, GOAL_DEPTH);
@@ -987,9 +1202,9 @@ function drawIceTrails() {
 function drawPlayers() {
   for (const p of players) {
     const isCarrier = p.hasPuck;
-    const spriteName = p.role === 'goalie'
-      ? (p.team === 0 ? 'goalie_red' : 'goalie_blue')
-      : (p.team === 0 ? 'player_red' : 'player_blue');
+    const t = teamOf(p.team);
+    const tName = t.name.toLowerCase();
+    const spriteName = p.role === 'goalie' ? `goalie_${tName}` : `player_${tName}`;
     const sprite = spriteImages[spriteName];
     const size = p.r * 2.5;
 
@@ -1011,17 +1226,14 @@ function drawPlayers() {
       ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
       ctx.restore();
     } else {
-      const colors = p.team === 0
-        ? { body: '#d03030', outline: '#901818', helmet: '#ff5050' }
-        : { body: '#2060d0', outline: '#103080', helmet: '#50a0ff' };
-      ctx.fillStyle = colors.body;
-      ctx.strokeStyle = colors.outline;
+      ctx.fillStyle = t.body;
+      ctx.strokeStyle = t.outline;
       ctx.lineWidth = 1.5 * S;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = colors.helmet;
+      ctx.fillStyle = t.helmet;
       ctx.beginPath();
       ctx.arc(p.x, p.y - 1.5*S, p.r * 0.55, 0, Math.PI * 2);
       ctx.fill();
@@ -1086,8 +1298,8 @@ function drawPuck() {
 }
 
 function drawUI() {
-  document.getElementById('score-red').textContent = score[0];
-  document.getElementById('score-blue').textContent = score[1];
+  document.getElementById('score-0').textContent = score[0];
+  document.getElementById('score-1').textContent = score[1];
   if (overtime) {
     const otNum = period - TOTAL_PERIODS;
     document.getElementById('period-info').textContent = otNum > 1 ? `OT${otNum}` : 'OT';
@@ -1136,10 +1348,17 @@ function gameLoop(ts) {
       goalTimer = 2.0;
       shakeAmount = 8 * S;
       showGoalFlash(goalScored);
-      const goalColor = goalScored === 0 ? '#ff5050' : '#50a0ff';
+      const goalColor = teamOf(goalScored).light;
       spawnParticles(puck.x, puck.y, goalColor, 25, 150 * S);
       spawnParticles(puck.x, puck.y, '#ffcc00', 15, 100 * S);
       pendingPenalty = null; // goal overrides pending penalty
+      // Track goal & assist
+      if (matchStats) {
+        const hist = puckCarrierHistory[goalScored];
+        if (hist.length > 0) { matchStats[hist[0]].goals++; }
+        if (hist.length > 1 && hist[1] !== hist[0]) { matchStats[hist[1]].assists++; }
+      }
+      puckCarrierHistory = [[], []];
     } else if (pendingPenalty) {
       // Handle pending penalty (no goal in this frame)
       lastPenaltyTeam = pendingPenalty.team;
@@ -1236,12 +1455,11 @@ function gameLoop(ts) {
   if (state === 'penalty') {
     ctx.fillStyle = 'rgba(5,5,20,0.6)';
     ctx.fillRect(0, H/2 - 30*S, W, 60*S);
-    ctx.fillStyle = lastPenaltyTeam === 0 ? '#ff5050' : '#50a0ff';
+    ctx.fillStyle = teamOf(lastPenaltyTeam).light;
     ctx.font = `${9*S}px 'Press Start 2P', monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const teamName = lastPenaltyTeam === 0 ? 'RED' : 'BLUE';
-    ctx.fillText(`${teamName} PENALTY`, W/2, H/2);
+    ctx.fillText(`${teamOf(lastPenaltyTeam).name} PENALTY`, W/2, H/2);
   }
 
   // Period end overlay
@@ -1268,15 +1486,15 @@ function gameLoop(ts) {
     ctx.font = `${12*S}px 'Press Start 2P', monospace`;
     ctx.fillText(`${score[0]} - ${score[1]}`, W/2, H/2 + 5*S);
     let winner;
-    if (score[0] > score[1]) winner = overtime ? 'RED WINS (OT)!' : 'RED WINS!';
-    else if (score[1] > score[0]) winner = overtime ? 'BLUE WINS (OT)!' : 'BLUE WINS!';
+    if (score[0] > score[1]) winner = overtime ? `${teamOf(0).name} WINS (OT)!` : `${teamOf(0).name} WINS!`;
+    else if (score[1] > score[0]) winner = overtime ? `${teamOf(1).name} WINS (OT)!` : `${teamOf(1).name} WINS!`;
     else winner = 'TIE!';
     ctx.font = `${7*S}px 'Press Start 2P', monospace`;
-    ctx.fillStyle = score[0] > score[1] ? '#ff5050' : score[1] > score[0] ? '#50a0ff' : '#fff';
+    ctx.fillStyle = score[0] > score[1] ? teamOf(0).light : score[1] > score[0] ? teamOf(1).light : '#fff';
     ctx.fillText(winner, W/2, H/2 + 28*S);
     ctx.font = `${4*S}px 'Press Start 2P', monospace`;
     ctx.fillStyle = '#888';
-    ctx.fillText('TAP TO RESTART', W/2, H/2 + 42*S);
+    ctx.fillText(franchise ? 'TAP TO CONTINUE' : 'TAP TO RESTART', W/2, H/2 + 42*S);
   }
 
   // Active penalty indicators on canvas
@@ -1287,7 +1505,7 @@ function gameLoop(ts) {
     ctx.textBaseline = 'top';
     for (let i = 0; i < activePen.length; i++) {
       const p = activePen[i];
-      ctx.fillStyle = p.team === 0 ? '#ff5050' : '#50a0ff';
+      ctx.fillStyle = teamOf(p.team).light;
       ctx.fillText(`PEN ${Math.ceil(p.penaltyTimer)}s`, W - 6*S, 6*S + i * 9*S);
     }
   }
@@ -1297,10 +1515,10 @@ function showGoalFlash(team) {
   playSound('goal');
   const el = document.getElementById('goal-flash');
   const span = el.querySelector('span');
-  const teamName = team === 0 ? 'RED' : 'BLUE';
-  span.textContent = `${teamName} GOAL!`;
-  span.style.color = team === 0 ? '#ff5050' : '#50a0ff';
-  el.style.background = team === 0 ? 'rgba(255,60,60,0.15)' : 'rgba(60,100,255,0.15)';
+  const t = teamOf(team);
+  span.textContent = `${t.name} GOAL!`;
+  span.style.color = t.light;
+  el.style.background = t.bg;
   el.style.display = 'flex';
   span.style.animation = 'none';
   void span.offsetWidth;
@@ -1308,29 +1526,790 @@ function showGoalFlash(team) {
   setTimeout(() => { el.style.display = 'none'; }, 1500);
 }
 
-function startGame() {
-  if (state === 'gameOver') {
-    score = [0, 0]; period = 1;
+function pickRandomTeams() {
+  const a = Math.floor(Math.random() * TEAMS.length);
+  let b = Math.floor(Math.random() * (TEAMS.length - 1));
+  if (b >= a) b++;
+  activeTeams = [a, b];
+  // Update scoreboard dots
+  document.getElementById('dot-0').style.background = teamOf(0).dot;
+  document.getElementById('dot-1').style.background = teamOf(1).dot;
+}
+
+function startMatch(team0Idx, team1Idx) {
+  activeTeams = [team0Idx, team1Idx];
+  document.getElementById('dot-0').style.background = teamOf(0).dot;
+  document.getElementById('dot-1').style.background = teamOf(1).dot;
+  score = [0, 0];
+  period = 1;
+  clock = PERIOD_TIME;
+  overtime = false;
+  particles = [];
+  shakeAmount = 0;
+  pendingPenalty = null;
+  faceoffPos = { x: W / 2, y: H / 2 };
+  puck = makePuck();
+  players = makePlayers();
+  puckCarrierHistory = [[], []];
+  matchStats = [];
+  for (let i = 0; i < players.length; i++) {
+    matchStats[i] = { goals: 0, assists: 0, bodyChecks: 0 };
   }
-  if (state === 'menu' || state === 'gameOver') {
-    clock = PERIOD_TIME;
-    overtime = false;
-    particles = [];
-    shakeAmount = 0;
-    pendingPenalty = null;
-    faceoffPos = { x: W / 2, y: H / 2 };
-    puck = makePuck();
-    players = makePlayers();
-    state = 'faceoff';
-    faceoffTimer = 1.0;
-    document.getElementById('msg-overlay').classList.add('hidden');
-  }
+  state = 'faceoff';
+  faceoffTimer = 1.0;
+  document.getElementById('franchise-screen').classList.add('hidden');
+  document.getElementById('msg-overlay').classList.add('hidden');
 }
 
 canvas.addEventListener('click', () => {
-  if (state === 'gameOver') startGame();
+  if (state === 'gameOver' && franchise) {
+    if (franchise.playoffState && franchise.playoffState.stage !== 'done') {
+      onPlayoffMatchEnd();
+    } else {
+      onMatchEnd();
+    }
+  }
 });
 
+// ─── SEASON ENGINE ─────────────────────────────────────
+function generateSchedule() {
+  const teams = [];
+  for (let i = 0; i < TEAMS.length; i++) teams.push(i);
+  const games = [];
+  // Each team plays each other twice (home & away)
+  for (let i = 0; i < teams.length; i++) {
+    for (let j = 0; j < teams.length; j++) {
+      if (i !== j) games.push({ home: teams[i], away: teams[j], result: null });
+    }
+  }
+  // Shuffle
+  for (let i = games.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [games[i], games[j]] = [games[j], games[i]];
+  }
+  franchise.schedule = games;
+  franchise.currentRound = 0;
+}
+
+function initStandings() {
+  franchise.standings = {};
+  for (let i = 0; i < TEAMS.length; i++) {
+    franchise.standings[i] = { w: 0, l: 0, otl: 0, otw: 0, gf: 0, ga: 0 };
+  }
+}
+
+function initSeasonStats() {
+  franchise.seasonStats = {};
+  for (let i = 0; i < TEAMS.length; i++) {
+    franchise.seasonStats[i] = franchise.rosters[i].map(() => ({ goals: 0, assists: 0 }));
+  }
+}
+
+function getPoints(s) { return s.w * 3 + s.otw * 2 + s.otl * 1; }
+
+function getSortedStandings() {
+  const arr = [];
+  for (let i = 0; i < TEAMS.length; i++) {
+    const s = franchise.standings[i];
+    arr.push({ team: i, ...s, pts: getPoints(s), gd: s.gf - s.ga });
+  }
+  arr.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+  return arr;
+}
+
+function teamStrength(teamIdx) {
+  const roster = franchise.rosters[teamIdx];
+  let total = 0;
+  for (const p of roster) {
+    const vals = Object.values(p.stats);
+    total += vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+  return total / roster.length;
+}
+
+function simMatch(homeIdx, awayIdx) {
+  const hStr = teamStrength(homeIdx);
+  const aStr = teamStrength(awayIdx);
+  const diff = (hStr - aStr) * 0.4;
+  let hGoals = Math.max(0, Math.round(2 + diff + (Math.random() - 0.5) * 3));
+  let aGoals = Math.max(0, Math.round(2 - diff + (Math.random() - 0.5) * 3));
+  let ot = false;
+  if (hGoals === aGoals) {
+    ot = true;
+    if (Math.random() < 0.5 + diff * 0.1) hGoals++;
+    else aGoals++;
+  }
+  return { home: hGoals, away: aGoals, ot };
+}
+
+function recordResult(homeIdx, awayIdx, hGoals, aGoals, ot) {
+  const sh = franchise.standings[homeIdx];
+  const sa = franchise.standings[awayIdx];
+  sh.gf += hGoals; sh.ga += aGoals;
+  sa.gf += aGoals; sa.ga += hGoals;
+  if (hGoals > aGoals) {
+    if (ot) { sh.otw++; sa.otl++; } else { sh.w++; sa.l++; }
+  } else {
+    if (ot) { sa.otw++; sh.otl++; } else { sa.w++; sh.l++; }
+  }
+}
+
+function simXpForTeam(teamIdx, won, goalsFor) {
+  const roster = franchise.rosters[teamIdx];
+  for (const p of roster) {
+    let xp = 10; // base
+    xp += won ? 20 : 5;
+    // Distribute some goal/assist xp randomly among non-goalies
+    if (p.role !== 'goalie' && goalsFor > 0) {
+      for (let g = 0; g < goalsFor; g++) {
+        if (Math.random() < 0.35) xp += 30; // goal
+        if (Math.random() < 0.35) xp += 20; // assist
+      }
+    }
+    if (Math.random() < 0.3) xp += 10; // random body check
+    addXpToPlayer(p, xp, teamIdx);
+  }
+}
+
+// ─── XP & LEVELING ─────────────────────────────────────
+function addXpToPlayer(player, xp, teamIdx) {
+  player.xp += xp;
+  const oldLevel = player.level;
+  while (player.level < LEVEL_THRESHOLDS.length && player.xp >= LEVEL_THRESHOLDS[player.level]) {
+    player.level++;
+    if (teamIdx !== franchise.playerTeam) {
+      autoAllocateStat(player);
+    } else {
+      player.unspentPoints++;
+    }
+  }
+}
+
+function autoAllocateStat(player) {
+  const priority = AUTO_LEVEL_PRIORITY[player.role] || AUTO_LEVEL_PRIORITY.fwd;
+  for (const stat of priority) {
+    if (player.stats[stat] !== undefined && player.stats[stat] < 10) {
+      player.stats[stat]++;
+      return;
+    }
+  }
+}
+
+function upgradeStat(teamIdx, rosterIdx, stat) {
+  const player = franchise.rosters[teamIdx][rosterIdx];
+  if (player.unspentPoints <= 0 || !player.stats[stat] || player.stats[stat] >= 10) return false;
+  player.stats[stat]++;
+  player.unspentPoints--;
+  saveFranchise();
+  return true;
+}
+
+function xpForNextLevel(player) {
+  if (player.level >= LEVEL_THRESHOLDS.length) return Infinity;
+  return LEVEL_THRESHOLDS[player.level];
+}
+
+// ─── MATCH END & XP DISTRIBUTION ───────────────────────
+function onMatchEnd() {
+  if (!franchise || !matchStats) { screenState = 'seasonHub'; renderFranchiseScreen(); return; }
+
+  const game = franchise.schedule[franchise.currentRound];
+  const hGoals = score[0], aGoals = score[1];
+  const ot = overtime;
+  game.result = { home: hGoals, away: aGoals, ot };
+  recordResult(game.home, game.away, hGoals, aGoals, ot);
+
+  // Distribute XP to players from both teams
+  const winnerSlot = hGoals > aGoals ? 0 : 1;
+  for (let slot = 0; slot < 2; slot++) {
+    const teamIdx = activeTeams[slot];
+    const won = slot === winnerSlot;
+    const roster = franchise.rosters[teamIdx];
+    for (let ri = 0; ri < roster.length; ri++) {
+      const pi = slot * 6 + ri;
+      const ms = matchStats[pi];
+      let xp = 10; // base
+      xp += won ? 20 : 5;
+      xp += ms.goals * 30;
+      xp += ms.assists * 20;
+      xp += ms.bodyChecks * 10;
+      addXpToPlayer(roster[ri], xp, teamIdx);
+      // Season stats
+      if (franchise.seasonStats[teamIdx]) {
+        franchise.seasonStats[teamIdx][ri].goals += ms.goals;
+        franchise.seasonStats[teamIdx][ri].assists += ms.assists;
+      }
+    }
+  }
+
+  franchise.currentRound++;
+  state = 'menu';
+  screenState = 'postMatch';
+  saveFranchise();
+  renderFranchiseScreen();
+}
+
+// ─── ADVANCE SEASON ────────────────────────────────────
+function advanceToNextRound() {
+  // Sim all games until we hit one involving playerTeam or end of schedule
+  while (franchise.currentRound < franchise.schedule.length) {
+    const game = franchise.schedule[franchise.currentRound];
+    if (game.home === franchise.playerTeam || game.away === franchise.playerTeam) {
+      // Player's match — show pre-match screen
+      screenState = 'preMatch';
+      saveFranchise();
+      renderFranchiseScreen();
+      return;
+    }
+    // Sim this game
+    const result = simMatch(game.home, game.away);
+    game.result = result;
+    recordResult(game.home, game.away, result.home, result.away, result.ot);
+    // Sim XP for both teams
+    simXpForTeam(game.home, result.home > result.away, result.home);
+    simXpForTeam(game.away, result.away > result.home, result.away);
+    franchise.currentRound++;
+  }
+  // Regular season over — go to playoffs
+  startPlayoffs();
+}
+
+// ─── PLAYOFFS ──────────────────────────────────────────
+function startPlayoffs() {
+  const standings = getSortedStandings();
+  franchise.playoffState = {
+    teams: standings.slice(0, 4).map(s => s.team),
+    semi: [null, null], // results
+    final: null,
+    champion: null,
+    stage: 'semi', // semi, final, done
+  };
+  screenState = 'playoffBracket';
+  saveFranchise();
+  renderFranchiseScreen();
+}
+
+function advancePlayoff() {
+  const ps = franchise.playoffState;
+  if (ps.stage === 'semi') {
+    // Play/sim semi-finals: #1 vs #4, #2 vs #3
+    const pairs = [[ps.teams[0], ps.teams[3]], [ps.teams[1], ps.teams[2]]];
+    for (let i = 0; i < 2; i++) {
+      if (ps.semi[i]) continue; // already played
+      const [a, b] = pairs[i];
+      if (a === franchise.playerTeam || b === franchise.playerTeam) {
+        // Player must play this
+        screenState = 'preMatch';
+        franchise._playoffMatchIdx = i;
+        saveFranchise();
+        renderFranchiseScreen();
+        return;
+      }
+      const result = simMatch(a, b);
+      ps.semi[i] = { home: a, away: b, ...result };
+      simXpForTeam(a, result.home > result.away, result.home);
+      simXpForTeam(b, result.away > result.home, result.away);
+    }
+    // Both semis done
+    ps.stage = 'final';
+    screenState = 'playoffBracket';
+    saveFranchise();
+    renderFranchiseScreen();
+  } else if (ps.stage === 'final') {
+    const w0 = ps.semi[0].home > ps.semi[0].away ? ps.semi[0].home : ps.semi[0].away;
+    const w1 = ps.semi[1].home > ps.semi[1].away ? ps.semi[1].home : ps.semi[1].away;
+    if (w0 === franchise.playerTeam || w1 === franchise.playerTeam) {
+      screenState = 'preMatch';
+      franchise._playoffMatchIdx = 'final';
+      saveFranchise();
+      renderFranchiseScreen();
+      return;
+    }
+    const result = simMatch(w0, w1);
+    ps.final = { home: w0, away: w1, ...result };
+    ps.champion = result.home > result.away ? w0 : w1;
+    ps.stage = 'done';
+    simXpForTeam(w0, result.home > result.away, result.home);
+    simXpForTeam(w1, result.away > result.home, result.away);
+    screenState = 'seasonEnd';
+    saveFranchise();
+    renderFranchiseScreen();
+  }
+}
+
+function onPlayoffMatchEnd() {
+  const ps = franchise.playoffState;
+  const hGoals = score[0], aGoals = score[1];
+  const ot = overtime;
+
+  // Distribute XP
+  const winnerSlot = hGoals > aGoals ? 0 : 1;
+  for (let slot = 0; slot < 2; slot++) {
+    const teamIdx = activeTeams[slot];
+    const won = slot === winnerSlot;
+    const roster = franchise.rosters[teamIdx];
+    for (let ri = 0; ri < roster.length; ri++) {
+      const pi = slot * 6 + ri;
+      const ms = matchStats[pi];
+      let xp = 15;
+      xp += won ? 30 : 5;
+      xp += ms.goals * 30;
+      xp += ms.assists * 20;
+      xp += ms.bodyChecks * 10;
+      addXpToPlayer(roster[ri], xp, teamIdx);
+      if (franchise.seasonStats[teamIdx]) {
+        franchise.seasonStats[teamIdx][ri].goals += ms.goals;
+        franchise.seasonStats[teamIdx][ri].assists += ms.assists;
+      }
+    }
+  }
+
+  if (franchise._playoffMatchIdx === 'final') {
+    ps.final = { home: activeTeams[0], away: activeTeams[1], home: hGoals, away: aGoals, ot };
+    // Fix: store teams and scores properly
+    ps.final = { homeTeam: activeTeams[0], awayTeam: activeTeams[1], home: hGoals, away: aGoals, ot };
+    ps.champion = hGoals > aGoals ? activeTeams[0] : activeTeams[1];
+    ps.stage = 'done';
+    state = 'menu';
+    screenState = 'seasonEnd';
+  } else {
+    const idx = franchise._playoffMatchIdx;
+    ps.semi[idx] = { home: activeTeams[0], away: activeTeams[1], homeGoals: hGoals, awayGoals: aGoals, ot };
+    // Determine which format to use consistently
+    ps.semi[idx] = { homeTeam: activeTeams[0], awayTeam: activeTeams[1], home: hGoals, away: aGoals, ot };
+    state = 'menu';
+    // Check if both semis done
+    if (ps.semi[0] && ps.semi[1]) {
+      ps.stage = 'final';
+    }
+    screenState = 'playoffBracket';
+  }
+
+  delete franchise._playoffMatchIdx;
+  saveFranchise();
+  renderFranchiseScreen();
+}
+
+function getPlayoffWinner(game) {
+  if (!game) return null;
+  return game.home > game.away ? game.homeTeam : game.awayTeam;
+}
+
+// ─── RANDOM EVENTS ─────────────────────────────────────
+function rollRandomEvent() {
+  if (Math.random() > 0.3) return null;
+  const roster = franchise.rosters[franchise.playerTeam];
+  const pi = Math.floor(Math.random() * roster.length);
+  const player = roster[pi];
+  const events = [
+    { type: 'hot', text: `${player.name} is on a HOT STREAK!`, apply: () => { player._tempBoost = { stat: randomStat(player), amount: 1 }; } },
+    { type: 'cold', text: `${player.name} is in a cold spell...`, apply: () => { player._tempBoost = { stat: randomStat(player), amount: -1 }; } },
+    { type: 'practice', text: `${player.name} had a great practice! +15 XP`, apply: () => { addXpToPlayer(player, 15, franchise.playerTeam); } },
+  ];
+  return events[Math.floor(Math.random() * events.length)];
+}
+
+function randomStat(player) {
+  const stats = Object.keys(player.stats);
+  return stats[Math.floor(Math.random() * stats.length)];
+}
+
+function applyTempBoosts() {
+  const roster = franchise.rosters[franchise.playerTeam];
+  for (const p of roster) {
+    if (p._tempBoost) {
+      p.stats[p._tempBoost.stat] = clamp(p.stats[p._tempBoost.stat] + p._tempBoost.amount, 1, 10);
+      p._tempRevert = { stat: p._tempBoost.stat, amount: -p._tempBoost.amount };
+      delete p._tempBoost;
+    }
+  }
+}
+
+function revertTempBoosts() {
+  const roster = franchise.rosters[franchise.playerTeam];
+  for (const p of roster) {
+    if (p._tempRevert) {
+      p.stats[p._tempRevert.stat] = clamp(p.stats[p._tempRevert.stat] + p._tempRevert.amount, 1, 10);
+      delete p._tempRevert;
+    }
+  }
+}
+
+// ─── PERSISTENCE ───────────────────────────────────────
+function saveFranchise() {
+  if (!franchise) return;
+  localStorage.setItem('pixelHockeyFranchise', JSON.stringify(franchise));
+}
+
+function loadFranchise() {
+  try {
+    const data = localStorage.getItem('pixelHockeyFranchise');
+    if (!data) return null;
+    return JSON.parse(data);
+  } catch (e) { return null; }
+}
+
+function deleteSave() {
+  localStorage.removeItem('pixelHockeyFranchise');
+}
+
+// ─── FRANCHISE UI ──────────────────────────────────────
+function renderFranchiseScreen() {
+  const el = document.getElementById('franchise-content');
+  const overlay = document.getElementById('franchise-screen');
+  overlay.classList.remove('hidden');
+
+  switch (screenState) {
+    case 'title': renderTitleScreen(el); break;
+    case 'teamSelect': renderTeamSelect(el); break;
+    case 'seasonHub': renderSeasonHub(el); break;
+    case 'roster': renderRoster(el); break;
+    case 'preMatch': renderPreMatch(el); break;
+    case 'postMatch': renderPostMatch(el); break;
+    case 'playoffBracket': renderPlayoffBracket(el); break;
+    case 'seasonEnd': renderSeasonEnd(el); break;
+  }
+}
+
+function renderTitleScreen(el) {
+  const hasSave = !!loadFranchise();
+  el.innerHTML = `
+    <div class="fr-title">PIXEL HOCKEY<br>FRANCHISE</div>
+    <div class="fr-subtitle">Season Mode</div>
+    <div>
+      <button class="fr-btn primary" onclick="screenState='teamSelect'; renderFranchiseScreen()">NEW GAME</button><br>
+      <button class="fr-btn ${hasSave ? '' : 'disabled'}" onclick="continueFranchise()">CONTINUE</button>
+    </div>
+  `;
+}
+
+function continueFranchise() {
+  const data = loadFranchise();
+  if (!data) return;
+  franchise = data;
+  // Initialize seasonStats if missing (old saves)
+  if (!franchise.seasonStats) initSeasonStats();
+  screenState = 'seasonHub';
+  renderFranchiseScreen();
+}
+
+function renderTeamSelect(el) {
+  let btns = '';
+  for (let i = 0; i < TEAMS.length; i++) {
+    const t = TEAMS[i];
+    btns += `<button class="fr-btn team-btn" style="color:${t.light}; border-color:${t.body}" onclick="selectTeam(${i})">${t.name}</button> `;
+  }
+  el.innerHTML = `
+    <div class="fr-title">CHOOSE YOUR TEAM</div>
+    <div style="margin: 20px 0">${btns}</div>
+    <div class="fr-subtitle">You will manage this team's roster and upgrades</div>
+  `;
+}
+
+function selectTeam(idx) {
+  createNewFranchise(idx);
+  saveFranchise();
+  screenState = 'seasonHub';
+  renderFranchiseScreen();
+}
+
+function renderSeasonHub(el) {
+  const standings = getSortedStandings();
+  const totalGames = franchise.schedule.length;
+  const played = franchise.schedule.filter(g => g.result).length;
+  const inPlayoffs = !!franchise.playoffState;
+
+  // Check for unspent points
+  const myRoster = franchise.rosters[franchise.playerTeam];
+  const hasUpgrades = myRoster.some(p => p.unspentPoints > 0);
+
+  let standingsHtml = `<table class="fr-table"><tr><th>#</th><th>TEAM</th><th>W</th><th>L</th><th>OT</th><th>PTS</th><th>GD</th></tr>`;
+  standings.forEach((s, i) => {
+    const isMine = s.team === franchise.playerTeam;
+    const isPlayoffLine = i === 3;
+    const cls = (isMine ? ' my-team' : '') + (isPlayoffLine ? ' playoff-line' : '');
+    standingsHtml += `<tr class="${cls}"><td>${i+1}</td><td>${TEAMS[s.team].name}</td><td>${s.w + s.otw}</td><td>${s.l}</td><td>${s.otl}</td><td>${s.pts}</td><td>${s.gd >= 0 ? '+' : ''}${s.gd}</td></tr>`;
+  });
+  standingsHtml += '</table>';
+
+  // Recent results
+  const recentGames = franchise.schedule.filter(g => g.result).slice(-4);
+  let resultsHtml = '';
+  for (const g of recentGames) {
+    const r = g.result;
+    const isMine = g.home === franchise.playerTeam || g.away === franchise.playerTeam;
+    const myWin = isMine && ((g.home === franchise.playerTeam && r.home > r.away) || (g.away === franchise.playerTeam && r.away > r.home));
+    const myLoss = isMine && !myWin;
+    const cls = isMine ? (myWin ? 'win' : (r.ot ? 'otl' : 'loss')) : '';
+    resultsHtml += `<span class="${cls}">${TEAMS[g.home].name} ${r.home} - ${r.away} ${TEAMS[g.away].name}${r.ot ? ' (OT)' : ''}</span><br>`;
+  }
+
+  let actionBtn = '';
+  if (franchise.currentRound < franchise.schedule.length) {
+    actionBtn = `<button class="fr-btn primary" onclick="advanceToNextRound()">NEXT</button>`;
+  } else if (!franchise.playoffState) {
+    actionBtn = `<button class="fr-btn primary" onclick="startPlayoffs()">PLAYOFFS</button>`;
+  } else {
+    actionBtn = `<button class="fr-btn primary" onclick="advancePlayoff()">PLAYOFF</button>`;
+  }
+
+  el.innerHTML = `
+    <div class="fr-title">SEASON ${franchise.season}</div>
+    <div class="fr-subtitle">Round ${played} / ${totalGames}</div>
+    ${standingsHtml}
+    ${resultsHtml ? `<div class="fr-section-title">RECENT</div><div class="fr-results">${resultsHtml}</div>` : ''}
+    <div style="margin-top: 10px">
+      ${actionBtn}
+      <button class="fr-btn ${hasUpgrades ? 'primary' : ''}" onclick="screenState='roster'; renderFranchiseScreen()">ROSTER${hasUpgrades ? ' (!)' : ''}</button>
+    </div>
+  `;
+}
+
+function renderRoster(el) {
+  const roster = franchise.rosters[franchise.playerTeam];
+  const teamName = TEAMS[franchise.playerTeam].name;
+  let cardsHtml = '';
+  for (let ri = 0; ri < roster.length; ri++) {
+    const p = roster[ri];
+    const hasPoints = p.unspentPoints > 0;
+    const statNames = p.role === 'goalie' ? STAT_NAMES_GOALIE : STAT_NAMES_SKATER;
+    const xpNext = xpForNextLevel(p);
+    const xpPrev = p.level > 1 ? LEVEL_THRESHOLDS[p.level - 1] : 0;
+    const xpProgress = xpNext === Infinity ? 100 : ((p.xp - xpPrev) / (xpNext - xpPrev) * 100);
+
+    let statsHtml = '';
+    for (const stat of statNames) {
+      const val = p.stats[stat];
+      let pips = '';
+      for (let i = 1; i <= 10; i++) {
+        const filled = i <= val;
+        const high = filled && val >= 8;
+        pips += `<div class="fr-stat-pip ${filled ? 'filled' : ''} ${high ? 'high' : ''}"></div>`;
+      }
+      const upgradeBtn = hasPoints && val < 10
+        ? `<button class="fr-upgrade-btn" onclick="doUpgrade(${ri},'${stat}')">+</button>`
+        : '';
+      const label = stat.substring(0, 3).toUpperCase();
+      statsHtml += `<div class="fr-stat-row"><span class="fr-stat-label">${label}</span><div class="fr-stat-bar">${pips}</div><span class="fr-stat-val">${val}</span>${upgradeBtn}</div>`;
+    }
+
+    cardsHtml += `
+      <div class="fr-roster-card ${hasPoints ? 'has-points' : ''}">
+        <span class="fr-player-name">${p.name}</span>
+        <span class="fr-player-role">${p.role.toUpperCase()}</span>
+        <span class="fr-player-level">Lv.${p.level}${hasPoints ? ` (+${p.unspentPoints})` : ''}</span>
+        <div class="fr-stats">${statsHtml}</div>
+        <div class="fr-xp-bar"><div class="fr-xp-fill" style="width:${xpProgress}%"></div></div>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="fr-title" style="color:${TEAMS[franchise.playerTeam].light}">${teamName} ROSTER</div>
+    <div class="fr-scroll">${cardsHtml}</div>
+    <button class="fr-btn" onclick="screenState='seasonHub'; renderFranchiseScreen()" style="margin-top:10px">BACK</button>
+  `;
+}
+
+function doUpgrade(rosterIdx, stat) {
+  upgradeStat(franchise.playerTeam, rosterIdx, stat);
+  renderFranchiseScreen();
+}
+
+function renderPreMatch(el) {
+  let homeIdx, awayIdx;
+  if (franchise.playoffState && franchise._playoffMatchIdx !== undefined) {
+    const ps = franchise.playoffState;
+    if (franchise._playoffMatchIdx === 'final') {
+      const w0 = getPlayoffWinner(ps.semi[0]);
+      const w1 = getPlayoffWinner(ps.semi[1]);
+      homeIdx = w0; awayIdx = w1;
+    } else {
+      const pairs = [[ps.teams[0], ps.teams[3]], [ps.teams[1], ps.teams[2]]];
+      [homeIdx, awayIdx] = pairs[franchise._playoffMatchIdx];
+    }
+  } else {
+    const game = franchise.schedule[franchise.currentRound];
+    homeIdx = game.home; awayIdx = game.away;
+  }
+
+  const hStr = teamStrength(homeIdx).toFixed(1);
+  const aStr = teamStrength(awayIdx).toFixed(1);
+  const isPlayoff = !!franchise.playoffState;
+  const roundLabel = isPlayoff
+    ? (franchise._playoffMatchIdx === 'final' ? 'FINAL' : 'SEMIFINAL')
+    : `ROUND ${franchise.currentRound + 1}`;
+
+  // Roll random event
+  const event = rollRandomEvent();
+  let eventHtml = '';
+  if (event) {
+    event.apply();
+    eventHtml = `<div class="fr-event-card">${event.text}</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="fr-subtitle">${roundLabel}</div>
+    <div class="fr-matchup">
+      <div class="fr-matchup-team" style="color:${TEAMS[homeIdx].light}">${TEAMS[homeIdx].name}<br><span style="font-size:8px;color:#888">Avg ${hStr}</span></div>
+      <div class="fr-matchup-vs">vs</div>
+      <div class="fr-matchup-team" style="color:${TEAMS[awayIdx].light}">${TEAMS[awayIdx].name}<br><span style="font-size:8px;color:#888">Avg ${aStr}</span></div>
+    </div>
+    ${eventHtml}
+    <button class="fr-btn primary" onclick="launchMatch(${homeIdx}, ${awayIdx})">START MATCH</button>
+    <button class="fr-btn" onclick="screenState='roster'; renderFranchiseScreen()">ROSTER</button>
+  `;
+}
+
+function launchMatch(homeIdx, awayIdx) {
+  applyTempBoosts();
+  startMatch(homeIdx, awayIdx);
+}
+
+function renderPostMatch(el) {
+  if (!matchStats) { screenState = 'seasonHub'; renderFranchiseScreen(); return; }
+
+  const lastGameIdx = franchise.currentRound - 1;
+  const game = franchise.schedule[lastGameIdx];
+  if (!game || !game.result) { screenState = 'seasonHub'; renderFranchiseScreen(); return; }
+  const r = game.result;
+
+  let playersHtml = '';
+  for (let slot = 0; slot < 2; slot++) {
+    const teamIdx = activeTeams[slot];
+    const teamColor = TEAMS[teamIdx].light;
+    playersHtml += `<div class="fr-section-title" style="color:${teamColor}">${TEAMS[teamIdx].name}</div>`;
+    for (let ri = 0; ri < 6; ri++) {
+      const pi = slot * 6 + ri;
+      const ms = matchStats[pi];
+      const rp = franchise.rosters[teamIdx][ri];
+      let icons = '';
+      for (let g = 0; g < ms.goals; g++) icons += 'G ';
+      for (let a = 0; a < ms.assists; a++) icons += 'A ';
+      for (let c = 0; c < ms.bodyChecks; c++) icons += 'H ';
+      const totalXp = 10 + (activeTeams[slot === 0 ? 0 : 1] === (r.home > r.away ? game.home : game.away) ? 20 : 5) + ms.goals * 30 + ms.assists * 20 + ms.bodyChecks * 10;
+      playersHtml += `<div class="fr-post-player">${rp.name} <span style="color:${teamColor}">${rp.role.toUpperCase()}</span> ${icons ? icons : ''}<span class="xp">+${totalXp} XP</span></div>`;
+    }
+  }
+
+  revertTempBoosts();
+
+  el.innerHTML = `
+    <div class="fr-title">${TEAMS[game.home].name} ${r.home} - ${r.away} ${TEAMS[game.away].name}</div>
+    <div class="fr-subtitle">${r.ot ? 'OVERTIME' : 'FINAL'}</div>
+    <div class="fr-scroll">${playersHtml}</div>
+    <button class="fr-btn primary" onclick="screenState='seasonHub'; renderFranchiseScreen()" style="margin-top:10px">CONTINUE</button>
+  `;
+  matchStats = null;
+}
+
+function renderPlayoffBracket(el) {
+  const ps = franchise.playoffState;
+  if (!ps) { screenState = 'seasonHub'; renderFranchiseScreen(); return; }
+
+  const pairs = [[ps.teams[0], ps.teams[3]], [ps.teams[1], ps.teams[2]]];
+
+  let semiHtml = '';
+  for (let i = 0; i < 2; i++) {
+    const [a, b] = pairs[i];
+    const result = ps.semi[i];
+    if (result) {
+      const winner = getPlayoffWinner(result);
+      semiHtml += `<div class="fr-bracket-game"><span class="${winner === a ? 'fr-bracket-winner' : ''}">${TEAMS[a].name} ${result.home}</span> - <span class="${winner === b ? 'fr-bracket-winner' : ''}">${result.away} ${TEAMS[b].name}</span>${result.ot ? ' OT' : ''}</div>`;
+    } else {
+      semiHtml += `<div class="fr-bracket-game">${TEAMS[a].name} vs ${TEAMS[b].name}</div>`;
+    }
+  }
+
+  let finalHtml = '';
+  if (ps.stage === 'final' || ps.stage === 'done') {
+    const w0 = getPlayoffWinner(ps.semi[0]);
+    const w1 = getPlayoffWinner(ps.semi[1]);
+    if (ps.final) {
+      const fWinner = getPlayoffWinner(ps.final);
+      finalHtml = `<div class="fr-bracket-game"><span class="${fWinner === (ps.final.homeTeam||w0) ? 'fr-bracket-winner' : ''}">${TEAMS[ps.final.homeTeam||w0].name} ${ps.final.home}</span> - <span class="${fWinner === (ps.final.awayTeam||w1) ? 'fr-bracket-winner' : ''}">${ps.final.away} ${TEAMS[ps.final.awayTeam||w1].name}</span>${ps.final.ot ? ' OT' : ''}</div>`;
+    } else {
+      finalHtml = `<div class="fr-bracket-game">${TEAMS[w0].name} vs ${TEAMS[w1].name}</div>`;
+    }
+  }
+
+  let actionBtn = '';
+  if (ps.stage === 'done') {
+    actionBtn = `<button class="fr-btn primary" onclick="screenState='seasonEnd'; renderFranchiseScreen()">RESULTS</button>`;
+  } else {
+    actionBtn = `<button class="fr-btn primary" onclick="advancePlayoff()">NEXT GAME</button>`;
+  }
+
+  el.innerHTML = `
+    <div class="fr-title">PLAYOFFS</div>
+    <div class="fr-bracket">
+      <div class="fr-section-title">SEMIFINALS</div>
+      <div class="fr-bracket-round">${semiHtml}</div>
+      <div class="fr-section-title">FINAL</div>
+      <div class="fr-bracket-round">${finalHtml || '<div class="fr-bracket-game">TBD vs TBD</div>'}</div>
+    </div>
+    ${actionBtn}
+  `;
+}
+
+function renderSeasonEnd(el) {
+  const ps = franchise.playoffState;
+  const champion = ps ? ps.champion : null;
+
+  // Find MVP (most goals+assists across season)
+  let mvp = null, mvpScore = -1;
+  for (let t = 0; t < TEAMS.length; t++) {
+    if (!franchise.seasonStats[t]) continue;
+    franchise.seasonStats[t].forEach((ss, ri) => {
+      const sc = ss.goals * 2 + ss.assists;
+      if (sc > mvpScore) {
+        mvpScore = sc;
+        mvp = { team: t, idx: ri, goals: ss.goals, assists: ss.assists, name: franchise.rosters[t][ri].name };
+      }
+    });
+  }
+
+  // Find top scorer
+  let topScorer = null, topGoals = -1;
+  for (let t = 0; t < TEAMS.length; t++) {
+    if (!franchise.seasonStats[t]) continue;
+    franchise.seasonStats[t].forEach((ss, ri) => {
+      if (ss.goals > topGoals) {
+        topGoals = ss.goals;
+        topScorer = { team: t, name: franchise.rosters[t][ri].name, goals: ss.goals };
+      }
+    });
+  }
+
+  el.innerHTML = `
+    <div class="fr-title">${champion !== null ? `${TEAMS[champion].name} WINS!` : 'SEASON OVER'}</div>
+    <div class="fr-subtitle">Season ${franchise.season} Complete</div>
+    ${champion !== null ? `<div style="font-size:24px; margin:10px 0; color:${TEAMS[champion].light}">CHAMPION</div>` : ''}
+    ${mvp ? `<div class="fr-event-card">MVP: ${mvp.name} (${TEAMS[mvp.team].name})<br>${mvp.goals} G, ${mvp.assists} A</div>` : ''}
+    ${topScorer ? `<div class="fr-event-card">Top Scorer: ${topScorer.name} (${TEAMS[topScorer.team].name})<br>${topScorer.goals} Goals</div>` : ''}
+    <button class="fr-btn primary" onclick="startNextSeason()" style="margin-top:16px">NEXT SEASON</button>
+  `;
+}
+
+function startNextSeason() {
+  franchise.season++;
+  franchise.playoffState = null;
+  franchise._playoffMatchIdx = undefined;
+  generateSchedule();
+  initStandings();
+  initSeasonStats();
+  saveFranchise();
+  screenState = 'seasonHub';
+  renderFranchiseScreen();
+}
+
+// ─── GAME OVER HOOK ────────────────────────────────────
+// Override game-over behavior: instead of restarting, go to post-match
+const origGameLoop = null; // handled inline in gameLoop
+
+// ─── STARTUP ───────────────────────────────────────────
+state = 'menu';
+screenState = 'title';
+renderFranchiseScreen();
 requestAnimationFrame(gameLoop);
 </script>
 </body>
