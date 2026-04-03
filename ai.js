@@ -36,7 +36,8 @@ function aiUpdate(dt) {
 
     let tx = p.hx, ty = p.hy;
     const spdStat = getPlayerStat(p, 'speed');
-    const spd = p.role === 'goalie' ? (40 + spdStat * 3) * S : (90 + spdStat * 8) * S;
+    let spd = p.role === 'goalie' ? (40 + spdStat * 3) * S : (90 + spdStat * 8) * S;
+    if (p.stunTimer > 0) spd *= 0.2;
 
     // Goalie positioning: lerp tracking toward puck.x based on positioning stat
     if (p.role === 'goalie') {
@@ -54,6 +55,8 @@ function aiUpdate(dt) {
     p.shootCooldown = Math.max(0, p.shootCooldown - dt);
     p.puckShield = Math.max(0, p.puckShield - dt);
     p.pickupCooldown = Math.max(0, p.pickupCooldown - dt);
+    p.shoveCooldown = Math.max(0, p.shoveCooldown - dt);
+    p.stunTimer = Math.max(0, p.stunTimer - dt);
 
     if (p.hasPuck) {
       if (p.role === 'goalie') {
@@ -359,6 +362,89 @@ function aiUpdate(dt) {
               y: defTop2 ? H * 0.2 : H * 0.8,
             },
           };
+        }
+      }
+    }
+
+    // Shove — any skater can shove any nearby opponent
+    if (p.role !== 'goalie' && !p.penalized && p.shoveCooldown <= 0) {
+      for (const opp of players) {
+        if (opp.team === p.team || opp.role === 'goalie' || opp.penalized || opp.stunTimer > 0) continue;
+        const d = dist(p, opp);
+        if (d < p.r * 3 && d > 0) {
+          const checkStat = getPlayerStat(p, 'check');
+          const oppHasPuck = opp.hasPuck;
+          const shoveChance = oppHasPuck
+            ? 0.004 + checkStat * 0.002   // puck carrier: moderate
+            : 0.0004 + checkStat * 0.0002; // others: rare
+          if (Math.random() < shoveChance) {
+            // Direction: shover → shoved
+            const nx = (opp.x - p.x) / d;
+            const ny = (opp.y - p.y) / d;
+            const knockback = (150 + checkStat * 20) * S;
+
+            // Save shoved player's velocity before hit (for puck)
+            const prevVx = opp.vx;
+            const prevVy = opp.vy;
+
+            // Apply knockback
+            opp.vx = nx * knockback;
+            opp.vy = ny * knockback;
+            opp.stunTimer = 0.3;
+            p.shoveCooldown = 2.0;
+
+            // Puck: follows shoved player's pre-shove velocity with slight random offset
+            if (opp.hasPuck) {
+              opp.hasPuck = false;
+              opp.pickupCooldown = 0.6;
+              puck.vx = prevVx + rand(-30, 30) * S;
+              puck.vy = prevVy + rand(-30, 30) * S;
+            }
+
+            // Particles + screen shake + sound
+            spawnParticles(opp.x, opp.y, '#fff', 8, 80 * S);
+            shakeAmount = 4 * S;
+            playSound('body_check');
+            if (matchStats) { const pi = players.indexOf(p); matchStats[pi].bodyChecks++; }
+
+            // Contextual penalty chance
+            let penaltyChance = 0.10; // base 10%
+
+            // Away from puck: +15-20%
+            const puckDist = dist(opp, puck);
+            if (puckDist > 80 * S) penaltyChance += 0.15 + Math.random() * 0.05;
+
+            // From behind: +10-15%
+            const shoveAngle = Math.atan2(ny, nx);
+            const facingDiff = Math.abs(shoveAngle - opp.facing);
+            const angleDelta = Math.min(facingDiff, Math.PI * 2 - facingDiff);
+            if (angleDelta < Math.PI * 0.4) penaltyChance += 0.10 + Math.random() * 0.05;
+
+            // Into the boards: +20-25%
+            const margin = opp.r + 5 * S;
+            const nearBoard = opp.x < margin || opp.x > W - margin || opp.y < margin || opp.y > H - margin;
+            if (nearBoard) penaltyChance += 0.20 + Math.random() * 0.05;
+
+            // Check stat reduces penalty slightly
+            penaltyChance -= checkStat * 0.008;
+            penaltyChance = Math.max(penaltyChance, 0.05);
+
+            if (Math.random() < penaltyChance && !pendingPenalty) {
+              p.penalized = true;
+              p.penaltyTimer = PENALTY_DURATION;
+              const defTop2 = defendsTop(p.team);
+              const side = Math.random() < 0.5 ? 0.25 : 0.75;
+              pendingPenalty = {
+                team: p.team,
+                faceoffPos: {
+                  x: W * side,
+                  y: defTop2 ? H * 0.2 : H * 0.8,
+                },
+              };
+            }
+
+            break; // one shove per frame per player
+          }
         }
       }
     }
