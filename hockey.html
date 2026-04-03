@@ -489,6 +489,7 @@ function makePlayers() {
       penaltyTimer: 0,
       rosterData,
       rosterIdx: localIdx,
+      goalieTrackX: p0.hx,
     });
   }
   return p;
@@ -545,7 +546,16 @@ function aiUpdate(dt) {
 
     let tx = p.hx, ty = p.hy;
     const spdStat = getPlayerStat(p, 'speed');
-    const spd = p.role === 'goalie' ? (80 + spdStat * 6) * S : (90 + spdStat * 8) * S;
+    const spd = p.role === 'goalie' ? (40 + spdStat * 3) * S : (90 + spdStat * 8) * S;
+
+    // Goalie positioning: lerp tracking toward puck.x based on positioning stat
+    if (p.role === 'goalie') {
+      const posStat = getPlayerStat(p, 'positioning');
+      const trackSpeed = 1 + posStat * 0.6; // 1.6 (pos=1) to 7 (pos=10) per second
+      const target = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+      const diff = target - p.goalieTrackX;
+      p.goalieTrackX += diff * Math.min(1, trackSpeed * dt);
+    }
     const defTop = defendsTop(p.team);
     const attackDir = defTop ? 1 : -1;
     const ownGoalY = defTop ? 0 : H;
@@ -570,7 +580,7 @@ function aiUpdate(dt) {
           p.pickupCooldown = 0.6;
           playSound('pass');
         }
-        tx = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+        tx = p.goalieTrackX;
         ty = ownGoalY + (defTop ? 25*S : -25*S);
       } else {
         p.holdTimer += dt;
@@ -628,7 +638,7 @@ function aiUpdate(dt) {
     } else if (carrier && carrier.team === p.team) {
       p.holdTimer = 0;
       if (p.role === 'goalie') {
-        tx = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+        tx = p.goalieTrackX;
         ty = ownGoalY + (defTop ? 20*S : -20*S);
       } else if (p.role === 'def') {
         const side = (p.hx < W/2) ? -1 : 1;
@@ -650,7 +660,7 @@ function aiUpdate(dt) {
     } else if (carrier && carrier.team !== p.team) {
       p.holdTimer = 0;
       if (p.role === 'goalie') {
-        tx = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+        tx = p.goalieTrackX;
         ty = ownGoalY + (defTop ? 20*S : -20*S);
       } else {
         const closest = closestToPuck(p.team);
@@ -671,7 +681,7 @@ function aiUpdate(dt) {
       }
     } else {
       if (p.role === 'goalie') {
-        tx = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
+        tx = p.goalieTrackX;
         ty = ownGoalY + (defTop ? 20*S : -20*S);
       } else {
         const closest = closestToPuck(p.team);
