@@ -111,13 +111,30 @@ function renderSeasonHub(el) {
   `;
 }
 
+// Pending upgrade tracking: { "rosterIdx:stat": delta, ... }
+let pendingUpgrades = {};
+
+function getPendingDelta(rosterIdx, stat) {
+  return pendingUpgrades[`${rosterIdx}:${stat}`] || 0;
+}
+
+function getTotalPendingPoints(rosterIdx) {
+  let total = 0;
+  for (const [key, delta] of Object.entries(pendingUpgrades)) {
+    if (key.startsWith(`${rosterIdx}:`)) total += delta;
+  }
+  return total;
+}
+
 function renderRoster(el) {
   const roster = franchise.rosters[franchise.playerTeam];
   const teamName = TEAMS[franchise.playerTeam].name;
   let cardsHtml = '';
   for (let ri = 0; ri < roster.length; ri++) {
     const p = roster[ri];
-    const hasPoints = p.unspentPoints > 0;
+    const pendingSpent = getTotalPendingPoints(ri);
+    const availablePoints = p.unspentPoints - pendingSpent;
+    const hasPoints = availablePoints > 0;
     const statNames = p.role === 'goalie' ? STAT_NAMES_GOALIE : STAT_NAMES_SKATER;
     const xpNext = xpForNextLevel(p);
     const xpPrev = p.level > 1 ? LEVEL_THRESHOLDS[p.level - 1] : 0;
@@ -125,40 +142,92 @@ function renderRoster(el) {
 
     let statsHtml = '';
     for (const stat of statNames) {
-      const val = p.stats[stat];
+      const baseVal = p.stats[stat];
+      const delta = getPendingDelta(ri, stat);
+      const effectiveVal = baseVal + delta;
       let pips = '';
       for (let i = 1; i <= 10; i++) {
-        const filled = i <= val;
-        const high = filled && val >= 8;
-        pips += `<div class="fr-stat-pip ${filled ? 'filled' : ''} ${high ? 'high' : ''}"></div>`;
+        const filled = i <= effectiveVal;
+        const high = filled && effectiveVal >= 8;
+        const isPending = filled && i > baseVal;
+        pips += `<div class="fr-stat-pip ${filled ? 'filled' : ''} ${high ? 'high' : ''} ${isPending ? 'pending' : ''}"></div>`;
       }
-      const upgradeBtn = hasPoints && val < 10
+      const canUpgrade = p.unspentPoints > 0;
+      const downBtn = delta > 0
+        ? `<button class="fr-upgrade-btn fr-downgrade-btn" onclick="doDowngrade(${ri},'${stat}')">-</button>`
+        : `<span class="fr-btn-placeholder"></span>`;
+      const upBtn = hasPoints && effectiveVal < 10
         ? `<button class="fr-upgrade-btn" onclick="doUpgrade(${ri},'${stat}')">+</button>`
-        : '';
+        : (canUpgrade ? `<span class="fr-btn-placeholder"></span>` : '');
       const STAT_LABELS = { speed:'SPEED', shot:'SHOT', pass:'PASS', check:'CHECK', defense:'DEF', save:'SAVE', positioning:'POS.' };
       const label = STAT_LABELS[stat] || stat.toUpperCase();
-      statsHtml += `<div class="fr-stat-row"><span class="fr-stat-label">${label}</span><div class="fr-stat-bar">${pips}</div><span class="fr-stat-val">${val}</span>${upgradeBtn}</div>`;
+      statsHtml += `<div class="fr-stat-row"><span class="fr-stat-label">${label}</span><div class="fr-stat-bar">${pips}</div><span class="fr-stat-val">${effectiveVal}${delta > 0 ? `<span class="fr-pending-delta">+${delta}</span>` : ''}</span>${downBtn}${upBtn}</div>`;
     }
 
+    const showPoints = p.unspentPoints > 0;
+
     cardsHtml += `
-      <div class="fr-roster-card ${hasPoints ? 'has-points' : ''}">
+      <div class="fr-roster-card ${hasPoints || pendingSpent > 0 ? 'has-points' : ''}">
         <span class="fr-player-name">${p.name}</span>
         <span class="fr-player-role">${p.role.toUpperCase()}</span>
-        <span class="fr-player-level">Lv.${p.level}${hasPoints ? ` (+${p.unspentPoints})` : ''}</span>
+        <span class="fr-player-level">Lv.${p.level}${showPoints ? ` (+${availablePoints})` : ''}</span>
         <div class="fr-stats">${statsHtml}</div>
         <div class="fr-xp-bar"><div class="fr-xp-fill" style="width:${xpProgress}%"></div></div>
       </div>`;
   }
 
+  const saveButtons = hasPendingUpgrades()
+    ? `<button class="fr-btn fr-save-btn" onclick="savePendingUpgrades()">SAVE</button><button class="fr-btn fr-cancel-btn" onclick="cancelPendingUpgrades()">CANCEL</button>`
+    : '';
+
   el.innerHTML = `
     <div class="fr-title" style="color:${TEAMS[franchise.playerTeam].light}">${teamName} ROSTER</div>
     <div class="fr-scroll">${cardsHtml}</div>
-    <button class="fr-btn" onclick="screenState='seasonHub'; renderFranchiseScreen()" style="margin-top:10px">BACK</button>
+    <div class="fr-roster-actions">
+      <button class="fr-btn" onclick="cancelPendingUpgrades(); screenState='seasonHub'; renderFranchiseScreen()">BACK</button>
+      ${saveButtons}
+    </div>
   `;
 }
 
 function doUpgrade(rosterIdx, stat) {
-  upgradeStat(franchise.playerTeam, rosterIdx, stat);
+  const p = franchise.rosters[franchise.playerTeam][rosterIdx];
+  const delta = getPendingDelta(rosterIdx, stat);
+  const effectiveVal = p.stats[stat] + delta;
+  const availablePoints = p.unspentPoints - getTotalPendingPoints(rosterIdx);
+  if (availablePoints <= 0 || effectiveVal >= 10) return;
+  const key = `${rosterIdx}:${stat}`;
+  pendingUpgrades[key] = delta + 1;
+  renderFranchiseScreen();
+}
+
+function doDowngrade(rosterIdx, stat) {
+  const delta = getPendingDelta(rosterIdx, stat);
+  if (delta <= 0) return;
+  const key = `${rosterIdx}:${stat}`;
+  pendingUpgrades[key] = delta - 1;
+  if (pendingUpgrades[key] === 0) delete pendingUpgrades[key];
+  renderFranchiseScreen();
+}
+
+function hasPendingUpgrades() {
+  return Object.keys(pendingUpgrades).length > 0;
+}
+
+function savePendingUpgrades() {
+  for (const [key, delta] of Object.entries(pendingUpgrades)) {
+    const [ri, stat] = key.split(':');
+    const player = franchise.rosters[franchise.playerTeam][parseInt(ri)];
+    player.stats[stat] += delta;
+    player.unspentPoints -= delta;
+  }
+  pendingUpgrades = {};
+  saveFranchise();
+  renderFranchiseScreen();
+}
+
+function cancelPendingUpgrades() {
+  pendingUpgrades = {};
   renderFranchiseScreen();
 }
 

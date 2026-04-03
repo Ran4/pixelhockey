@@ -122,14 +122,6 @@ function autoAllocateStat(player) {
   }
 }
 
-function upgradeStat(teamIdx, rosterIdx, stat) {
-  const player = franchise.rosters[teamIdx][rosterIdx];
-  if (player.unspentPoints <= 0 || !player.stats[stat] || player.stats[stat] >= 10) return false;
-  player.stats[stat]++;
-  player.unspentPoints--;
-  saveFranchise();
-  return true;
-}
 
 function xpForNextLevel(player) {
   if (player.level >= LEVEL_THRESHOLDS.length) return Infinity;

@@ -112,7 +112,7 @@
   .fr-player-role { font-size: 13px; color: #8888aa; margin-left: 8px; }
   .fr-player-level { font-size: 13px; color: #ffcc00; float: right; }
   .fr-stats { margin-top: 10px; }
-  .fr-stat-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 12px; }
+  .fr-stat-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 12px; min-height: 28px; }
   .fr-stat-label { width: 58px; color: #8888aa; text-align: right; }
   .fr-stat-bar { display: flex; gap: 4px; }
   .fr-stat-pip { width: 16px; height: 12px; border-radius: 2px; background: #222; border: 1px solid #334; }
@@ -126,6 +126,17 @@
     border-radius: 2px; cursor: pointer;
   }
   .fr-upgrade-btn:hover { background: #443300; }
+  .fr-btn-placeholder { display: inline-block; width: 28px; margin-left: 6px; }
+  .fr-downgrade-btn { color: #ff6666; border-color: #ff6666; background: #220000; }
+  .fr-downgrade-btn:hover { background: #330000; }
+  .fr-stat-pip.pending { background: #cc8800; border-color: #ddaa00; animation: pip-pulse 1s ease-in-out infinite; }
+  @keyframes pip-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+  .fr-pending-delta { color: #cc8800; font-size: 10px; margin-left: 2px; }
+  .fr-roster-actions { display: flex; gap: 12px; justify-content: center; margin-top: 10px; }
+  .fr-save-btn { background: #224400 !important; border-color: #44cc00 !important; color: #44cc00 !important; }
+  .fr-save-btn:hover { background: #336600 !important; }
+  .fr-cancel-btn { background: #330000 !important; border-color: #cc4444 !important; color: #cc4444 !important; }
+  .fr-cancel-btn:hover { background: #440000 !important; }
   .fr-xp-bar { width: 100%; height: 8px; background: #222; border-radius: 4px; margin-top: 8px; }
   .fr-xp-fill { height: 100%; background: #8855cc; border-radius: 4px; transition: width 0.3s; }
   .fr-event-card {

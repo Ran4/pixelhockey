@@ -83,7 +83,12 @@ function aiUpdate(dt) {
         const shotPower = (220 + shotStat * 20) * S;
 
         if (dg < shotRange && p.shootCooldown <= 0) {
-          const n = norm(goalX - p.x + rand(-20*S, 20*S), goalY - p.y);
+          let n = norm(goalX - p.x + rand(-20*S, 20*S), goalY - p.y);
+          const defAngle = getDefensePenalty(p);
+          if (defAngle) {
+            const cos = Math.cos(defAngle), sin = Math.sin(defAngle);
+            n = { x: n.x * cos - n.y * sin, y: n.x * sin + n.y * cos };
+          }
           puck.vx = n.x * shotPower;
           puck.vy = n.y * shotPower;
           p.hasPuck = false;
@@ -309,7 +314,12 @@ function aiUpdate(dt) {
           const oppGoalDist = dist(p, { x: W/2, y: oppGoalY });
           if (puckSpeed > 80 * S && oppGoalDist < 120 * S) {
             const otPower = (240 + getPlayerStat(p, 'shot') * 22) * S;
-            const n = norm(W/2 - p.x + rand(-15*S, 15*S), oppGoalY - p.y);
+            let n = norm(W/2 - p.x + rand(-15*S, 15*S), oppGoalY - p.y);
+            const defAngle = getDefensePenalty(p);
+            if (defAngle) {
+              const cos = Math.cos(defAngle), sin = Math.sin(defAngle);
+              n = { x: n.x * cos - n.y * sin, y: n.x * sin + n.y * cos };
+            }
             puck.vx = n.x * otPower;
             puck.vy = n.y * otPower;
             p.hasPuck = false;
@@ -413,6 +423,30 @@ function aiUpdate(dt) {
       }
     }
   }
+}
+
+function getDefensePenalty(shooter) {
+  if (shooter.isGoalie) return 0;
+  const radius = 50 * S;
+  let bestDef = 0;
+  for (const d of players) {
+    if (d.team === shooter.team || d.role === 'goalie' || d.penalized) continue;
+    if (dist(shooter, d) < radius) {
+      const def = getPlayerStat(d, 'defense');
+      if (def > bestDef) bestDef = def;
+    }
+  }
+  // Shooter's shot skill reduces effective defense:
+  // shot 1-3 → 0, 4-5 → 1, 6-7 → 2, 8-9 → 3, 10 → 4
+  // e.g. def=8 vs shot=7 → eff=6, 35% chance, max ±30°
+  //      def=8 vs shot=10 → eff=4, 21% chance, max ±20°
+  const shotStat = getPlayerStat(shooter, 'shot');
+  const shotReduce = shotStat >= 10 ? 4 : shotStat >= 8 ? 3 : shotStat >= 6 ? 2 : shotStat >= 4 ? 1 : 0;
+  const effective = bestDef - shotReduce;
+  if (effective <= 1) return 0;
+  if (Math.random() > 0.07 * (effective - 1)) return 0;
+  const maxDeg = 5 * effective;
+  return (Math.random() * 2 - 1) * maxDeg * (Math.PI / 180);
 }
 
 function closestOpponent(p) {
