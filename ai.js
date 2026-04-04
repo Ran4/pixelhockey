@@ -36,7 +36,7 @@ function aiUpdate(dt) {
 
     let tx = p.hx, ty = p.hy;
     const spdStat = getPlayerStat(p, 'speed');
-    let spd = p.role === 'goalie' ? (40 + spdStat * 3) * S : (90 + spdStat * 8) * S;
+    let spd = p.role === 'goalie' ? (30 + spdStat * 2.25) * S : (67 + spdStat * 6) * S;
     if (p.stunTimer > 0) spd *= 0.2;
 
     // Goalie positioning: lerp tracking toward puck.x based on positioning stat
@@ -236,7 +236,7 @@ function aiUpdate(dt) {
     }
 
     // Friction
-    const fric = 0.92;
+    const fric = 0.94;
     p.vx *= fric; p.vy *= fric;
 
     // Speed limit (stunned players coast freely from knockback)

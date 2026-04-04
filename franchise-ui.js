@@ -129,8 +129,10 @@ function getTotalPendingPoints(rosterIdx) {
 function renderRoster(el) {
   const roster = franchise.rosters[franchise.playerTeam];
   const teamName = TEAMS[franchise.playerTeam].name;
+  const roleOrder = { fwd: 0, def: 1, center: 2, goalie: 3 };
+  const sortedIndices = roster.map((_, i) => i).sort((a, b) => (roleOrder[roster[a].role] ?? 9) - (roleOrder[roster[b].role] ?? 9));
   let cardsHtml = '';
-  for (let ri = 0; ri < roster.length; ri++) {
+  for (const ri of sortedIndices) {
     const p = roster[ri];
     const pendingSpent = getTotalPendingPoints(ri);
     const availablePoints = p.unspentPoints - pendingSpent;
