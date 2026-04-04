@@ -66,18 +66,22 @@ function drawRink() {
   ctx.fillRect(W + outerEdge, box1Bot, PEN_BOX_W - outerEdge, H - box1Bot);
 
   // Draw penalty boxes with gate openings
+  const gateOpenH = 20 * S; // small door opening
   for (let t = 0; t < 2; t++) {
     const byTop = t === 0 ? box0Top : box1Top;
-    // Erase inner board strokes at gate with ice color
+    const gateTop = byTop + (PEN_BOX_H - gateOpenH) / 2;
+    // Erase board strokes only at the small gate opening
     ctx.fillStyle = '#dde8f0';
-    ctx.fillRect(W - 5 * S, byTop, 5 * S, PEN_BOX_H);
-    // Erase outer board strokes at gate with box floor color
+    ctx.fillRect(W - 5 * S, gateTop, 5 * S, gateOpenH);
     ctx.fillStyle = '#181822';
-    ctx.fillRect(W, byTop, PEN_BOX_W, PEN_BOX_H);
+    ctx.fillRect(W, gateTop, outerEdge, gateOpenH);
+    // Box floor (fully outside rink)
+    ctx.fillStyle = '#181822';
+    ctx.fillRect(W + outerEdge, byTop, PEN_BOX_W - outerEdge, PEN_BOX_H);
     // Bench seat (against far wall)
     ctx.fillStyle = '#2a2a3e';
     ctx.fillRect(W + PEN_BOX_W - 10 * S, byTop + 4 * S, 5 * S, PEN_BOX_H - 8 * S);
-    // Box walls — top, right, bottom (left side is the gate)
+    // Box walls — top, right, bottom + left wall with gate gap
     ctx.strokeStyle = '#445';
     ctx.lineWidth = 1.5 * S;
     const boxLeft = W + outerEdge;
@@ -85,6 +89,15 @@ function drawRink() {
     ctx.moveTo(boxLeft, byTop);
     ctx.lineTo(W + PEN_BOX_W, byTop);
     ctx.lineTo(W + PEN_BOX_W, byTop + PEN_BOX_H);
+    ctx.lineTo(boxLeft, byTop + PEN_BOX_H);
+    ctx.stroke();
+    // Left wall segments (above and below gate)
+    ctx.beginPath();
+    ctx.moveTo(boxLeft, byTop);
+    ctx.lineTo(boxLeft, gateTop);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(boxLeft, gateTop + gateOpenH);
     ctx.lineTo(boxLeft, byTop + PEN_BOX_H);
     ctx.stroke();
   }
