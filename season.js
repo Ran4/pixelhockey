@@ -320,9 +320,13 @@ function rollRandomEvent() {
   const roster = franchise.rosters[franchise.playerTeam];
   const pi = Math.floor(Math.random() * roster.length);
   const player = roster[pi];
+  const STAT_LABELS = { speed:'SPEED', shot:'SHOT', pass:'PASS', check:'CHECK', defense:'DEF', save:'SAVE', positioning:'POS.' };
+  const hotEligible = Object.keys(player.stats).filter(s => player.stats[s] <= 8);
+  const hotStat = hotEligible.length > 0 ? hotEligible[Math.floor(Math.random() * hotEligible.length)] : null;
+  const coldStat = randomStat(player);
   const events = [
-    { type: 'hot', text: `${player.name} is on a HOT STREAK!`, apply: () => { player._tempBoost = { stat: randomStat(player), amount: 1 }; } },
-    { type: 'cold', text: `${player.name} is in a cold spell...`, apply: () => { player._tempBoost = { stat: randomStat(player), amount: -1 }; } },
+    ...(hotStat ? [{ type: 'hot', text: `${player.name} is on a HOT STREAK!\n+2 ${STAT_LABELS[hotStat] || hotStat.toUpperCase()} this match`, apply: () => { player._tempBoost = { stat: hotStat, amount: 2 }; } }] : []),
+    { type: 'cold', text: `${player.name} is in a cold spell...\n-2 ${STAT_LABELS[coldStat] || coldStat.toUpperCase()} this match`, apply: () => { player._tempBoost = { stat: coldStat, amount: -2 }; } },
     { type: 'practice', text: `${player.name} had a great practice! +15 XP`, apply: () => { addXpToPlayer(player, 15, franchise.playerTeam); } },
   ];
   return events[Math.floor(Math.random() * events.length)];
