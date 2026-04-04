@@ -3,6 +3,10 @@ function drawRink() {
   const topSlot = defendsTop(0) ? 0 : 1;
   const botSlot = 1 - topSlot;
 
+  // Background (outside rink) — offset to cover full canvas despite translate
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(-RINK_X, 0, CANVAS_W, H);
+
   // Ice
   ctx.fillStyle = '#dde8f0';
   ctx.fillRect(0, 0, W, H);
@@ -45,6 +49,45 @@ function drawRink() {
   ctx.strokeStyle = '#778';
   ctx.lineWidth = 1 * S;
   ctx.stroke(boardPath);
+
+  // Penalty box areas (outside rink, drawn over board to create gates)
+  const box0Top = H / 2 - PEN_BOX_GAP / 2 - PEN_BOX_H;
+  const box0Bot = box0Top + PEN_BOX_H;
+  const box1Top = H / 2 + PEN_BOX_GAP / 2;
+  const box1Bot = box1Top + PEN_BOX_H;
+  const gateDepth = 8 * S; // how far into board the gate cuts
+  const boxInset = 6 * S;  // gap between board outer edge and box walls
+
+  // Dark fill beyond board (non-gate areas only)
+  const outerEdge = 5 * S; // just past outer board stroke
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(W + outerEdge, 0, PEN_BOX_W - outerEdge, box0Top);
+  ctx.fillRect(W + outerEdge, box0Bot, PEN_BOX_W - outerEdge, box1Top - box0Bot);
+  ctx.fillRect(W + outerEdge, box1Bot, PEN_BOX_W - outerEdge, H - box1Bot);
+
+  // Draw penalty boxes with gate openings
+  for (let t = 0; t < 2; t++) {
+    const byTop = t === 0 ? box0Top : box1Top;
+    // Erase inner board strokes at gate with ice color
+    ctx.fillStyle = '#dde8f0';
+    ctx.fillRect(W - 5 * S, byTop, 5 * S, PEN_BOX_H);
+    // Erase outer board strokes at gate with box floor color
+    ctx.fillStyle = '#181822';
+    ctx.fillRect(W, byTop, PEN_BOX_W, PEN_BOX_H);
+    // Bench seat (against far wall)
+    ctx.fillStyle = '#2a2a3e';
+    ctx.fillRect(W + PEN_BOX_W - 10 * S, byTop + 4 * S, 5 * S, PEN_BOX_H - 8 * S);
+    // Box walls — top, right, bottom (left side is the gate)
+    ctx.strokeStyle = '#445';
+    ctx.lineWidth = 1.5 * S;
+    const boxLeft = W + outerEdge;
+    ctx.beginPath();
+    ctx.moveTo(boxLeft, byTop);
+    ctx.lineTo(W + PEN_BOX_W, byTop);
+    ctx.lineTo(W + PEN_BOX_W, byTop + PEN_BOX_H);
+    ctx.lineTo(boxLeft, byTop + PEN_BOX_H);
+    ctx.stroke();
+  }
 
   // Center line
   ctx.strokeStyle = '#c04040';
@@ -164,11 +207,6 @@ function drawPlayers() {
     const sprite = spriteImages[spriteName];
     const size = p.r * 2.5;
 
-    // Penalized players: draw semi-transparent in box
-    if (p.penalized) {
-      ctx.globalAlpha = 0.4;
-    }
-
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
     ctx.beginPath();
@@ -203,7 +241,6 @@ function drawPlayers() {
     }
 
     if (p.penalized) {
-      ctx.globalAlpha = 1;
       // Penalty timer text
       ctx.fillStyle = '#ffcc00';
       ctx.font = `${3*S}px 'Press Start 2P', monospace`;
@@ -297,7 +334,7 @@ function drawOverlays() {
   // Penalty announcement overlay
   if (state === 'penalty') {
     ctx.fillStyle = 'rgba(5,5,20,0.6)';
-    ctx.fillRect(0, H/2 - 30*S, W, 60*S);
+    ctx.fillRect(-RINK_X, H/2 - 30*S, CANVAS_W, 60*S);
     ctx.fillStyle = teamOf(lastPenaltyTeam).light;
     ctx.font = `${9*S}px 'Press Start 2P', monospace`;
     ctx.textAlign = 'center';
@@ -308,7 +345,7 @@ function drawOverlays() {
   // Period end overlay
   if (state === 'periodEnd') {
     ctx.fillStyle = 'rgba(5,5,20,0.6)';
-    ctx.fillRect(0, H/2 - 30*S, W, 60*S);
+    ctx.fillRect(-RINK_X, H/2 - 30*S, CANVAS_W, 60*S);
     ctx.fillStyle = '#ffcc00';
     ctx.font = `${10*S}px 'Press Start 2P', monospace`;
     ctx.textAlign = 'center';
@@ -321,7 +358,7 @@ function drawOverlays() {
   // Game over overlay
   if (state === 'gameOver') {
     ctx.fillStyle = 'rgba(5,5,20,0.75)';
-    ctx.fillRect(0, H/2 - 50*S, W, 100*S);
+    ctx.fillRect(-RINK_X, H/2 - 50*S, CANVAS_W, 100*S);
     ctx.fillStyle = '#ffcc00';
     ctx.font = `${8*S}px 'Press Start 2P', monospace`;
     ctx.textAlign = 'center';
@@ -341,7 +378,7 @@ function drawOverlays() {
   }
 
   // Active penalty indicators on canvas
-  const activePen = players.filter(p => p.penalized);
+  const activePen = players ? players.filter(p => p.penalized) : [];
   if (activePen.length > 0 && state === 'playing') {
     ctx.font = `${3.5*S}px 'Press Start 2P', monospace`;
     ctx.textAlign = 'right';

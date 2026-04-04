@@ -194,8 +194,12 @@ const S = 2;
 const W = RINK_W * S;
 const H = RINK_H * S;
 
+const PEN_BOX_W = 38 * S; // penalty box width outside rink
+const RINK_X = PEN_BOX_W; // left offset to center rink
+const CANVAS_W = W + PEN_BOX_W * 2;
+
 const canvas = document.getElementById('c');
-canvas.width = W; canvas.height = H;
+canvas.width = CANVAS_W; canvas.height = H;
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
@@ -355,8 +359,8 @@ function fitCanvas() {
   const bottomUI = 34;
   const sw = window.innerWidth - pad;
   const sh = window.innerHeight - topUI - bottomUI;
-  const cssScale = Math.min(sw / W, sh / H);
-  canvas.style.width = (W * cssScale) + 'px';
+  const cssScale = Math.min(sw / CANVAS_W, sh / H);
+  canvas.style.width = (CANVAS_W * cssScale) + 'px';
   canvas.style.height = (H * cssScale) + 'px';
 }
 fitCanvas();
@@ -379,9 +383,11 @@ const OT_TIME = 60;
 const TOTAL_PERIODS = 3;
 const PENALTY_DURATION = 30; // game seconds
 
+const PEN_BOX_H = 45 * S; // penalty box height (fits 3 players)
+const PEN_BOX_GAP = 6 * S; // gap between the two boxes
 const PENALTY_BOX = [
-  { x: W - 15 * S, y: H / 2 - 20 * S },
-  { x: W - 15 * S, y: H / 2 + 20 * S },
+  { x: W + PEN_BOX_W / 2, y: H / 2 - PEN_BOX_GAP / 2 - PEN_BOX_H / 2 },
+  { x: W + PEN_BOX_W / 2, y: H / 2 + PEN_BOX_GAP / 2 + PEN_BOX_H / 2 },
 ];
 
 let state = 'menu'; // menu, playing, faceoff, goal, penalty, periodEnd, gameOver
@@ -628,18 +634,23 @@ function gameLoop(ts) {
 
   // Draw with shake
   ctx.save();
-  ctx.translate(shakeX, shakeY);
+  ctx.translate(RINK_X + shakeX, shakeY);
   ctx.imageSmoothingEnabled = false;
   drawRink();
-  drawIceTrails();
-  drawPlayers();
-  drawPuck();
+  if (players && puck) {
+    drawIceTrails();
+    drawPlayers();
+    drawPuck();
+  }
   drawParticles();
   ctx.restore();
 
   // UI (no shake)
+  ctx.save();
+  ctx.translate(RINK_X, 0);
   drawUI();
   drawOverlays();
+  ctx.restore();
 }
 
 function pickRandomTeams() {
