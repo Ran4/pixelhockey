@@ -373,10 +373,15 @@ function aiUpdate(dt) {
         const d = dist(p, opp);
         if (d < p.r * 3 && d > 0) {
           const checkStat = getPlayerStat(p, 'check');
-          const oppHasPuck = opp.hasPuck;
-          const shoveChance = oppHasPuck
-            ? 0.004 + checkStat * 0.002   // puck carrier: moderate
-            : 0.0004 + checkStat * 0.0002; // others: rare
+          let shoveChance;
+          const bothNearLoosePuck = !carrier && dist(p, puck) < 40 * S && dist(opp, puck) < 40 * S;
+          if (opp.hasPuck) {
+            shoveChance = 0.004 + checkStat * 0.002;
+          } else if (bothNearLoosePuck) {
+            shoveChance = 0.002 + checkStat * 0.001;
+          } else {
+            shoveChance = 0.0004 + checkStat * 0.0002;
+          }
           if (Math.random() < shoveChance) {
             // Direction: shover → shoved
             const nx = (opp.x - p.x) / d;
