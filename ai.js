@@ -9,6 +9,7 @@ function aiUpdate(dt) {
       if (p.penaltyTimer <= 0) {
         p.penalized = false;
         p.penaltyTimer = 0;
+        delete p.reachedGate;
         // Restore home position
         const positions = [...getTeamPositions(0), ...getTeamPositions(1)];
         const idx = players.indexOf(p);
@@ -17,15 +18,23 @@ function aiUpdate(dt) {
       }
     }
 
-    // Penalized: go to penalty box, do nothing else
+    // Penalized: go to gate opening first, then into penalty box
     if (p.penalized) {
-      const box = PENALTY_BOX[p.team];
-      const dx = box.x - p.x;
-      const dy = box.y - p.y;
+      const gate = PENALTY_GATE[p.team];
+      const penTeammates = players.filter(o => o.penalized && o.team === p.team);
+      const seatIdx = penTeammates.indexOf(p);
+      const seatOffset = (seatIdx - (penTeammates.length - 1) / 2) * 16 * S;
+      const box = { x: PENALTY_BOX[p.team].x, y: PENALTY_BOX[p.team].y + seatOffset };
+      const target = (!p.reachedGate) ? gate : box;
+      const dx = target.x - p.x;
+      const dy = target.y - p.y;
       const d = Math.hypot(dx, dy);
       if (d > 3) {
         p.vx = (dx / d) * 100 * S;
         p.vy = (dy / d) * 100 * S;
+      } else if (!p.reachedGate) {
+        p.reachedGate = true;
+        p.vx = 0; p.vy = 0;
       } else {
         p.vx = 0; p.vy = 0;
       }

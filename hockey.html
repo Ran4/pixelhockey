@@ -389,6 +389,10 @@ const PENALTY_BOX = [
   { x: W + PEN_BOX_W / 2, y: H / 2 - PEN_BOX_GAP / 2 - PEN_BOX_H / 2 },
   { x: W + PEN_BOX_W / 2, y: H / 2 + PEN_BOX_GAP / 2 + PEN_BOX_H / 2 },
 ];
+const PENALTY_GATE = [
+  { x: W - 15 * S, y: PENALTY_BOX[0].y },
+  { x: W - 15 * S, y: PENALTY_BOX[1].y },
+];
 
 let state = 'menu'; // menu, playing, faceoff, goal, penalty, periodEnd, gameOver
 let score = [0, 0];
@@ -593,9 +597,18 @@ function gameLoop(ts) {
         state = 'gameOver';
       } else {
         faceoffPos = { x: W / 2, y: H / 2 };
-        resetPositions();
-        state = 'faceoff';
-        faceoffTimer = 1.0;
+        // Set up target positions for smooth skate-to-position
+        const positions = [...getTeamPositions(0), ...getTeamPositions(1)];
+        players.forEach((p, i) => {
+          if (p.penalized) return;
+          p.resetTarget = { x: positions[i].hx, y: positions[i].hy };
+          p.hx = positions[i].hx;
+          p.hy = positions[i].hy;
+          p.hasPuck = false;
+          p.shootCooldown = 0; p.puckShield = 0; p.pickupCooldown = 0;
+        });
+        puck.vx = 0; puck.vy = 0; puck.trail = [];
+        state = 'penaltyReset';
         playSound('whistle');
       }
     }
@@ -617,46 +630,74 @@ function gameLoop(ts) {
     }
   } else if (state === 'penaltyReset') {
     const resetSpeed = 150 * S;
+    const fric = 0.94;
     let allArrived = true;
 
     for (const p of players) {
+      let tx, ty, spd;
+
       if (p.penalized) {
-        // Penalized player skates to penalty box
-        const box = PENALTY_BOX[p.team];
-        const dx = box.x - p.x;
-        const dy = box.y - p.y;
-        const d = Math.hypot(dx, dy);
-        if (d > 3) {
+        // Penalized player skates to gate opening first, then into box
+        const gate = PENALTY_GATE[p.team];
+        const penTeammates = players.filter(o => o.penalized && o.team === p.team);
+        const seatIdx = penTeammates.indexOf(p);
+        const seatOffset = (seatIdx - (penTeammates.length - 1) / 2) * 16 * S;
+        const box = { x: PENALTY_BOX[p.team].x, y: PENALTY_BOX[p.team].y + seatOffset };
+        const target = (!p.reachedGate) ? gate : box;
+        tx = target.x; ty = target.y;
+        spd = 100 * S;
+
+        const d = Math.hypot(tx - p.x, ty - p.y);
+        if (d <= 3 && !p.reachedGate) {
+          p.reachedGate = true;
           allArrived = false;
-          p.vx = (dx / d) * 100 * S;
-          p.vy = (dy / d) * 100 * S;
-        } else {
+        } else if (d <= 3 && p.reachedGate) {
           p.vx = 0; p.vy = 0;
-        }
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-      } else if (p.resetTarget) {
-        const dx = p.resetTarget.x - p.x;
-        const dy = p.resetTarget.y - p.y;
-        const d = Math.hypot(dx, dy);
-        if (d > 3) {
-          allArrived = false;
-          p.vx = (dx / d) * resetSpeed;
-          p.vy = (dy / d) * resetSpeed;
-          p.x += p.vx * dt;
-          p.y += p.vy * dt;
+          // skip movement
+          tx = null;
         } else {
+          allArrived = false;
+        }
+      } else if (p.resetTarget) {
+        tx = p.resetTarget.x; ty = p.resetTarget.y;
+        spd = resetSpeed;
+
+        const d = Math.hypot(tx - p.x, ty - p.y);
+        if (d <= 3) {
           p.x = p.resetTarget.x;
           p.y = p.resetTarget.y;
           p.vx = 0; p.vy = 0;
           delete p.resetTarget;
+          tx = null;
+        } else {
+          allArrived = false;
         }
+      } else {
+        tx = null;
       }
 
-      // Facing direction & ice trails during reset
+      // Acceleration-based movement (same as normal skating)
+      if (tx !== null) {
+        const dx = tx - p.x;
+        const dy = ty - p.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 2) {
+          const acc = spd * 4;
+          p.vx += (dx / d) * acc * dt;
+          p.vy += (dy / d) * acc * dt;
+        }
+      }
+      p.vx *= fric;
+      p.vy *= fric;
       const sp = Math.hypot(p.vx, p.vy);
-      if (sp > 20 * S) p.facing = Math.atan2(p.vy, p.vx);
-      if (sp > 30 * S) {
+      if (spd && sp > spd) { p.vx *= spd / sp; p.vy *= spd / sp; }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      // Facing direction & ice trails during reset
+      const sp2 = Math.hypot(p.vx, p.vy);
+      if (sp2 > 20 * S) p.facing = Math.atan2(p.vy, p.vx);
+      if (sp2 > 30 * S) {
         p.iceTrail.push({ x: p.x, y: p.y });
         if (p.iceTrail.length > 40) p.iceTrail.shift();
       }
@@ -676,7 +717,7 @@ function gameLoop(ts) {
     }
 
     if (allArrived) {
-      players.forEach(p => delete p.resetTarget);
+      players.forEach(p => { delete p.resetTarget; delete p.reachedGate; });
       puck.x = faceoffPos.x;
       puck.y = faceoffPos.y;
       puck.vx = 0; puck.vy = 0;
