@@ -602,9 +602,84 @@ function gameLoop(ts) {
   } else if (state === 'penalty') {
     penaltyDisplayTimer -= rawDt;
     if (penaltyDisplayTimer <= 0) {
-      resetPositions();
+      // Set up target positions for smooth skate-to-position
+      const positions = [...getTeamPositions(0), ...getTeamPositions(1)];
+      players.forEach((p, i) => {
+        if (p.penalized) return;
+        p.resetTarget = { x: positions[i].hx, y: positions[i].hy };
+        p.hx = positions[i].hx;
+        p.hy = positions[i].hy;
+        p.hasPuck = false;
+        p.shootCooldown = 0; p.puckShield = 0; p.pickupCooldown = 0;
+      });
+      puck.vx = 0; puck.vy = 0; puck.trail = [];
+      state = 'penaltyReset';
+    }
+  } else if (state === 'penaltyReset') {
+    const resetSpeed = 150 * S;
+    let allArrived = true;
+
+    for (const p of players) {
+      if (p.penalized) {
+        // Penalized player skates to penalty box
+        const box = PENALTY_BOX[p.team];
+        const dx = box.x - p.x;
+        const dy = box.y - p.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 3) {
+          allArrived = false;
+          p.vx = (dx / d) * 100 * S;
+          p.vy = (dy / d) * 100 * S;
+        } else {
+          p.vx = 0; p.vy = 0;
+        }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+      } else if (p.resetTarget) {
+        const dx = p.resetTarget.x - p.x;
+        const dy = p.resetTarget.y - p.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 3) {
+          allArrived = false;
+          p.vx = (dx / d) * resetSpeed;
+          p.vy = (dy / d) * resetSpeed;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+        } else {
+          p.x = p.resetTarget.x;
+          p.y = p.resetTarget.y;
+          p.vx = 0; p.vy = 0;
+          delete p.resetTarget;
+        }
+      }
+
+      // Facing direction & ice trails during reset
+      const sp = Math.hypot(p.vx, p.vy);
+      if (sp > 20 * S) p.facing = Math.atan2(p.vy, p.vx);
+      if (sp > 30 * S) {
+        p.iceTrail.push({ x: p.x, y: p.y });
+        if (p.iceTrail.length > 40) p.iceTrail.shift();
+      }
+    }
+
+    // Slide puck to faceoff position
+    const pdx = faceoffPos.x - puck.x;
+    const pdy = faceoffPos.y - puck.y;
+    const pd = Math.hypot(pdx, pdy);
+    if (pd > 3) {
+      allArrived = false;
+      puck.x += (pdx / pd) * resetSpeed * dt;
+      puck.y += (pdy / pd) * resetSpeed * dt;
+    } else {
       puck.x = faceoffPos.x;
       puck.y = faceoffPos.y;
+    }
+
+    if (allArrived) {
+      players.forEach(p => delete p.resetTarget);
+      puck.x = faceoffPos.x;
+      puck.y = faceoffPos.y;
+      puck.vx = 0; puck.vy = 0;
       state = 'faceoff';
       faceoffTimer = 1.0;
     }
