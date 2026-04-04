@@ -150,7 +150,7 @@ function renderRoster(el) {
       let pips = '';
       for (let i = 1; i <= 10; i++) {
         const filled = i <= effectiveVal;
-        const high = filled && effectiveVal >= 8;
+        const high = filled && effectiveVal >= 10;
         const isPending = filled && i > baseVal;
         pips += `<div class="fr-stat-pip ${filled ? 'filled' : ''} ${high ? 'high' : ''} ${isPending ? 'pending' : ''}"></div>`;
       }
