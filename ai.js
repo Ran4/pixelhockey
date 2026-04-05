@@ -187,14 +187,19 @@ function aiUpdate(dt) {
           if (teammate) {
             let doPass = false;
             const myGoaliePulled = isGoaliePulled(p.team);
+            // Suppress passing when driving toward goal with open ice
+            const drivingToGoal = dg < shotRange * 2.2 && oppDist > 30 * S;
 
-            if (p.holdTimer > 2.5) doPass = true;
-            if (oppDist < 35 * S && p.holdTimer > 0.8) doPass = true;
-            if (oppDist < 20 * S && p.holdTimer > 0.4) doPass = true;
-            if (p.role === 'def' && p.holdTimer > 1.2) doPass = true;
-            if (p.holdTimer > 1.0 && Math.random() < 0.015) doPass = true;
+            if (p.holdTimer > 3.5) doPass = true;
+            if (oppDist < 35 * S && p.holdTimer > 1.2) doPass = true;
+            if (oppDist < 20 * S && p.holdTimer > 0.5) doPass = true;
+            if (p.role === 'def' && p.holdTimer > 1.5) doPass = true;
+            if (p.holdTimer > 1.5 && Math.random() < 0.005) doPass = true;
             // Desperate passing when our goalie is pulled
             if (myGoaliePulled && p.holdTimer > 0.6) doPass = true;
+
+            // Don't pass when skating in on goal with space
+            if (drivingToGoal && !myGoaliePulled) doPass = false;
 
             if (doPass && p.shootCooldown <= 0) {
               const lead = getPassLead(carrier, teammate);
