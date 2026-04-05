@@ -409,6 +409,7 @@ let shakeAmount = 0;
 let pendingPenalty = null;
 let penaltyDisplayTimer = 0;
 let lastPenaltyTeam = -1;
+let pulledGoalie = [false, false]; // true if team has pulled their goalie
 
 // ─── HELPERS ────────────────────────────────────────────
 function rand(a, b) { return a + Math.random() * (b - a); }
@@ -717,7 +718,7 @@ function gameLoop(ts) {
     }
 
     if (allArrived) {
-      players.forEach(p => { delete p.resetTarget; delete p.reachedGate; });
+      players.forEach(p => { delete p.resetTarget; if (!p.penalized) delete p.reachedGate; });
       puck.x = faceoffPos.x;
       puck.y = faceoffPos.y;
       puck.vx = 0; puck.vy = 0;
@@ -729,6 +730,8 @@ function gameLoop(ts) {
     if (periodEndTimer <= 0) {
       period++;
       clock = overtime ? OT_TIME : PERIOD_TIME;
+      pulledGoalie = [false, false];
+      players.forEach(p => { if (p.role === 'goalie') p.pulledOff = false; });
       faceoffPos = { x: W / 2, y: H / 2 };
       resetPositions();
       state = 'faceoff';
@@ -790,6 +793,7 @@ function startMatch(team0Idx, team1Idx) {
   particles = [];
   shakeAmount = 0;
   pendingPenalty = null;
+  pulledGoalie = [false, false];
   faceoffPos = { x: W / 2, y: H / 2 };
   puck = makePuck();
   players = makePlayers();

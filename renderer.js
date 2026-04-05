@@ -213,6 +213,8 @@ function drawIceTrails() {
 
 function drawPlayers() {
   for (const p of players) {
+    // Don't draw pulled goalie (off-ice)
+    if (p.role === 'goalie' && p.pulledOff) continue;
     const isCarrier = p.hasPuck;
     const t = teamOf(p.team);
     const tName = t.name.toLowerCase();
@@ -392,6 +394,7 @@ function drawOverlays() {
 
   // Active penalty indicators on canvas
   const activePen = players ? players.filter(p => p.penalized) : [];
+  let indicatorY = 6 * S;
   if (activePen.length > 0 && state === 'playing') {
     ctx.font = `${3.5*S}px 'Press Start 2P', monospace`;
     ctx.textAlign = 'right';
@@ -399,7 +402,23 @@ function drawOverlays() {
     for (let i = 0; i < activePen.length; i++) {
       const p = activePen[i];
       ctx.fillStyle = teamOf(p.team).light;
-      ctx.fillText(`PEN ${Math.ceil(p.penaltyTimer)}s`, W - 6*S, 6*S + i * 9*S);
+      ctx.fillText(`PEN ${Math.ceil(p.penaltyTimer)}s`, W - 6*S, indicatorY);
+      indicatorY += 9 * S;
+    }
+  }
+
+  // Empty net indicators
+  if (state === 'playing' || state === 'faceoff') {
+    for (let team = 0; team < 2; team++) {
+      if (isGoaliePulled(team)) {
+        const pulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.006);
+        ctx.font = `${3.5*S}px 'Press Start 2P', monospace`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = `rgba(255, 100, 100, ${pulse})`;
+        ctx.fillText(`${teamOf(team).name} EN`, W - 6*S, indicatorY);
+        indicatorY += 9 * S;
+      }
     }
   }
 }

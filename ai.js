@@ -1,5 +1,36 @@
+// ─── PULLED GOALIE ──────────────────────────────────────
+function getBenchPos() { return { x: -30 * S, y: H / 2 }; }
+
+function updatePulledGoalie() {
+  for (let team = 0; team < 2; team++) {
+    const opp = 1 - team;
+    const trailing = score[opp] - score[team]; // how many goals behind
+    const shouldPull = !overtime
+      && period === TOTAL_PERIODS
+      && trailing >= 1 && trailing <= 2
+      && clock <= (trailing === 1 ? 60 : 90)
+      && !players.find(p => p.team === team && p.penalized && p.role !== 'goalie');
+
+    if (shouldPull && !pulledGoalie[team]) {
+      pulledGoalie[team] = true;
+    } else if (!shouldPull && pulledGoalie[team]) {
+      // Restore goalie (tied up, scored, period changed, etc.)
+      pulledGoalie[team] = false;
+      const goalie = players.find(p => p.team === team && p.role === 'goalie');
+      if (goalie) {
+        goalie.pulledOff = false;
+      }
+    }
+  }
+}
+
+function isGoaliePulled(team) {
+  return pulledGoalie[team];
+}
+
 // ─── AI ─────────────────────────────────────────────────
 function aiUpdate(dt) {
+  updatePulledGoalie();
   const carrier = players.find(p => p.hasPuck);
 
   for (const p of players) {
@@ -41,6 +72,39 @@ function aiUpdate(dt) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       continue;
+    }
+
+    // Pulled goalie: skate off to bench
+    if (p.role === 'goalie' && isGoaliePulled(p.team)) {
+      const benchTarget = getBenchPos();
+      const dx = benchTarget.x - p.x;
+      const dy = benchTarget.y - p.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 5) {
+        const benchSpd = 80 * S;
+        p.vx = (dx / d) * benchSpd;
+        p.vy = (dy / d) * benchSpd;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        if (p.hasPuck) {
+          // Drop puck before leaving
+          p.hasPuck = false;
+          puck.vx = 0; puck.vy = 0;
+        }
+      } else {
+        p.x = benchTarget.x;
+        p.y = benchTarget.y;
+        p.vx = 0; p.vy = 0;
+        p.pulledOff = true;
+      }
+      continue;
+    }
+    // Goalie returning from being pulled
+    if (p.role === 'goalie' && p.pulledOff) {
+      p.pulledOff = false;
+      const defTop = defendsTop(p.team);
+      p.hx = W / 2;
+      p.hy = defTop ? 30 * S : H - 30 * S;
     }
 
     let tx = p.hx, ty = p.hy;
@@ -91,11 +155,14 @@ function aiUpdate(dt) {
         const goalY = oppGoalY;
         const dg = dist(p, { x: goalX, y: goalY });
         const shotStat = getPlayerStat(p, 'shot');
-        const shotRange = (70 + shotStat * 8) * S;
+        const oppTeam = 1 - p.team;
+        const emptyNet = isGoaliePulled(oppTeam);
+        const shotRange = emptyNet ? (160 + shotStat * 10) * S : (70 + shotStat * 8) * S;
         const shotPower = (220 + shotStat * 20) * S;
 
         if (dg < shotRange && p.shootCooldown <= 0) {
-          let n = norm(goalX - p.x + rand(-20*S, 20*S), goalY - p.y);
+          const spread = emptyNet ? rand(-8*S, 8*S) : rand(-20*S, 20*S);
+          let n = norm(goalX - p.x + spread, goalY - p.y);
           const defAngle = getDefensePenalty(p);
           if (defAngle) {
             const cos = Math.cos(defAngle), sin = Math.sin(defAngle);
@@ -119,12 +186,15 @@ function aiUpdate(dt) {
 
           if (teammate) {
             let doPass = false;
+            const myGoaliePulled = isGoaliePulled(p.team);
 
             if (p.holdTimer > 2.5) doPass = true;
             if (oppDist < 35 * S && p.holdTimer > 0.8) doPass = true;
             if (oppDist < 20 * S && p.holdTimer > 0.4) doPass = true;
             if (p.role === 'def' && p.holdTimer > 1.2) doPass = true;
             if (p.holdTimer > 1.0 && Math.random() < 0.015) doPass = true;
+            // Desperate passing when our goalie is pulled
+            if (myGoaliePulled && p.holdTimer > 0.6) doPass = true;
 
             if (doPass && p.shootCooldown <= 0) {
               const lead = getPassLead(carrier, teammate);
@@ -144,13 +214,17 @@ function aiUpdate(dt) {
       }
     } else if (carrier && carrier.team === p.team) {
       p.holdTimer = 0;
+      const pulled = isGoaliePulled(p.team);
       if (p.role === 'goalie') {
         tx = p.goalieTrackX;
         ty = ownGoalY + (defTop ? 20*S : -20*S);
       } else if (p.role === 'def') {
         const side = (p.hx < W/2) ? -1 : 1;
         tx = W/2 + side * 80 * S;
-        ty = carrier.y - attackDir * 70 * S;
+        // When goalie pulled, defenders push up like extra forwards
+        ty = pulled
+          ? carrier.y + attackDir * 30 * S
+          : carrier.y - attackDir * 70 * S;
         ty = clamp(ty, 35*S, H - 35*S);
       } else if (p.role === 'fwd') {
         const side = (p.hx < W/2) ? -1 : 1;
@@ -491,6 +565,7 @@ function aiUpdate(dt) {
     for (let j = i+1; j < players.length; j++) {
       const a = players[i], b = players[j];
       if (a.penalized || b.penalized) continue;
+      if (a.pulledOff || b.pulledOff) continue;
       const d = dist(a, b);
       const minD = a.r + b.r;
       if (d < minD && d > 0) {
