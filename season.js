@@ -225,7 +225,7 @@ function advancePlayoff() {
         return;
       }
       const result = simMatch(a, b);
-      ps.semi[i] = { home: a, away: b, ...result };
+      ps.semi[i] = { homeTeam: a, awayTeam: b, ...result };
       simXpForTeam(a, result.home > result.away, result.home);
       simXpForTeam(b, result.away > result.home, result.away);
     }
@@ -235,8 +235,8 @@ function advancePlayoff() {
     saveFranchise();
     renderFranchiseScreen();
   } else if (ps.stage === 'final') {
-    const w0 = ps.semi[0].home > ps.semi[0].away ? ps.semi[0].home : ps.semi[0].away;
-    const w1 = ps.semi[1].home > ps.semi[1].away ? ps.semi[1].home : ps.semi[1].away;
+    const w0 = getPlayoffWinner(ps.semi[0]);
+    const w1 = getPlayoffWinner(ps.semi[1]);
     if (w0 === franchise.playerTeam || w1 === franchise.playerTeam) {
       screenState = 'preMatch';
       franchise._playoffMatchIdx = 'final';
@@ -245,7 +245,7 @@ function advancePlayoff() {
       return;
     }
     const result = simMatch(w0, w1);
-    ps.final = { home: w0, away: w1, ...result };
+    ps.final = { homeTeam: w0, awayTeam: w1, ...result };
     ps.champion = result.home > result.away ? w0 : w1;
     ps.stage = 'done';
     simXpForTeam(w0, result.home > result.away, result.home);
@@ -284,8 +284,6 @@ function onPlayoffMatchEnd() {
   }
 
   if (franchise._playoffMatchIdx === 'final') {
-    ps.final = { home: activeTeams[0], away: activeTeams[1], home: hGoals, away: aGoals, ot };
-    // Fix: store teams and scores properly
     ps.final = { homeTeam: activeTeams[0], awayTeam: activeTeams[1], home: hGoals, away: aGoals, ot };
     ps.champion = hGoals > aGoals ? activeTeams[0] : activeTeams[1];
     ps.stage = 'done';
@@ -293,8 +291,6 @@ function onPlayoffMatchEnd() {
     screenState = 'seasonEnd';
   } else {
     const idx = franchise._playoffMatchIdx;
-    ps.semi[idx] = { home: activeTeams[0], away: activeTeams[1], homeGoals: hGoals, awayGoals: aGoals, ot };
-    // Determine which format to use consistently
     ps.semi[idx] = { homeTeam: activeTeams[0], awayTeam: activeTeams[1], home: hGoals, away: aGoals, ot };
     state = 'menu';
     // Check if both semis done
@@ -368,7 +364,29 @@ function loadFranchise() {
   try {
     const data = localStorage.getItem('pixelHockeyFranchise');
     if (!data) return null;
-    return JSON.parse(data);
+    const f = JSON.parse(data);
+    // Migrate old playoff saves that used home/away for both teams and scores
+    if (f.playoffState) {
+      const ps = f.playoffState;
+      const teams = ps.teams;
+      if (teams) {
+        const pairs = [[teams[0], teams[3]], [teams[1], teams[2]]];
+        for (let i = 0; i < 2; i++) {
+          const s = ps.semi && ps.semi[i];
+          if (s && s.homeTeam === undefined) {
+            s.homeTeam = pairs[i][0];
+            s.awayTeam = pairs[i][1];
+          }
+        }
+        if (ps.final && ps.final.homeTeam === undefined) {
+          const w0 = getPlayoffWinner(ps.semi[0]);
+          const w1 = getPlayoffWinner(ps.semi[1]);
+          ps.final.homeTeam = w0;
+          ps.final.awayTeam = w1;
+        }
+      }
+    }
+    return f;
   } catch (e) { return null; }
 }
 
