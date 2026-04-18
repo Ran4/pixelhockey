@@ -1,6 +1,4 @@
 // ─── PULLED GOALIE ──────────────────────────────────────
-function getBenchPos() { return { x: -30 * S, y: H / 2 }; }
-
 function updatePulledGoalie() {
   for (let team = 0; team < 2; team++) {
     const opp = 1 - team;
@@ -19,6 +17,10 @@ function updatePulledGoalie() {
       const goalie = players.find(p => p.team === team && p.role === 'goalie');
       if (goalie) {
         goalie.pulledOff = false;
+        // Restore goalie home position
+        const defTop = defendsTop(team);
+        goalie.hx = W / 2;
+        goalie.hy = defTop ? 30 * S : H - 30 * S;
       }
     }
   }
@@ -74,46 +76,16 @@ function aiUpdate(dt) {
       continue;
     }
 
-    // Pulled goalie: skate off to bench
-    if (p.role === 'goalie' && isGoaliePulled(p.team)) {
-      const benchTarget = getBenchPos();
-      const dx = benchTarget.x - p.x;
-      const dy = benchTarget.y - p.y;
-      const d = Math.hypot(dx, dy);
-      if (d > 5) {
-        const benchSpd = 80 * S;
-        p.vx = (dx / d) * benchSpd;
-        p.vy = (dy / d) * benchSpd;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        if (p.hasPuck) {
-          // Drop puck before leaving
-          p.hasPuck = false;
-          puck.vx = 0; puck.vy = 0;
-        }
-      } else {
-        p.x = benchTarget.x;
-        p.y = benchTarget.y;
-        p.vx = 0; p.vy = 0;
-        p.pulledOff = true;
-      }
-      continue;
-    }
-    // Goalie returning from being pulled
-    if (p.role === 'goalie' && p.pulledOff) {
-      p.pulledOff = false;
-      const defTop = defendsTop(p.team);
-      p.hx = W / 2;
-      p.hy = defTop ? 30 * S : H - 30 * S;
-    }
+    // Pulled goalie acts as extra attacker instead of leaving the ice
+    const pulledGoalieAsAttacker = p.role === 'goalie' && isGoaliePulled(p.team);
 
     let tx = p.hx, ty = p.hy;
     const spdStat = getPlayerStat(p, 'speed');
-    let spd = p.role === 'goalie' ? (30 + spdStat * 2.25) * S : (67 + spdStat * 6) * S;
+    let spd = (p.role === 'goalie' && !pulledGoalieAsAttacker) ? (30 + spdStat * 2.25) * S : (67 + spdStat * 6) * S;
     if (p.stunTimer > 0) spd *= 0.2;
 
     // Goalie positioning: lerp tracking toward puck.x based on positioning stat
-    if (p.role === 'goalie') {
+    if (p.role === 'goalie' && !pulledGoalieAsAttacker) {
       const posStat = getPlayerStat(p, 'positioning');
       const trackSpeed = 1 + posStat * 0.6; // 1.6 (pos=1) to 7 (pos=10) per second
       const target = clamp(puck.x, GOAL_X + 10*S, GOAL_X + GOAL_W - 10*S);
@@ -132,7 +104,7 @@ function aiUpdate(dt) {
     p.stunTimer = Math.max(0, p.stunTimer - dt);
 
     if (p.hasPuck) {
-      if (p.role === 'goalie') {
+      if (p.role === 'goalie' && !pulledGoalieAsAttacker) {
         const target = bestGoaliePassTarget(p);
         if (target) {
           const lead = getPassLead(p, target);
@@ -220,9 +192,15 @@ function aiUpdate(dt) {
     } else if (carrier && carrier.team === p.team) {
       p.holdTimer = 0;
       const pulled = isGoaliePulled(p.team);
-      if (p.role === 'goalie') {
+      if (p.role === 'goalie' && !pulledGoalieAsAttacker) {
         tx = p.goalieTrackX;
         ty = ownGoalY + (defTop ? 20*S : -20*S);
+      } else if (pulledGoalieAsAttacker) {
+        // Extra attacker: position like a center
+        const carrierSide = carrier.x < W/2 ? 1 : -1;
+        tx = W/2 + carrierSide * 20 * S;
+        ty = carrier.y + attackDir * 50 * S;
+        ty = clamp(ty, 35*S, H - 35*S);
       } else if (p.role === 'def') {
         const side = (p.hx < W/2) ? -1 : 1;
         tx = W/2 + side * 80 * S;
@@ -245,7 +223,7 @@ function aiUpdate(dt) {
       tx += Math.sin(Date.now() * 0.003 + p.hx * 0.1) * 12 * S;
     } else if (carrier && carrier.team !== p.team) {
       p.holdTimer = 0;
-      if (p.role === 'goalie') {
+      if (p.role === 'goalie' && !pulledGoalieAsAttacker) {
         tx = p.goalieTrackX;
         ty = ownGoalY + (defTop ? 20*S : -20*S);
       } else {
@@ -266,7 +244,7 @@ function aiUpdate(dt) {
         }
       }
     } else {
-      if (p.role === 'goalie') {
+      if (p.role === 'goalie' && !pulledGoalieAsAttacker) {
         tx = p.goalieTrackX;
         ty = ownGoalY + (defTop ? 20*S : -20*S);
       } else {
@@ -280,7 +258,7 @@ function aiUpdate(dt) {
     }
 
     // Goalie constraints
-    if (p.role === 'goalie') {
+    if (p.role === 'goalie' && !pulledGoalieAsAttacker) {
       const gyMin = defTop ? 8*S : H - 45*S;
       const gyMax = defTop ? 45*S : H - 8*S;
       ty = clamp(ty, gyMin, gyMax);
